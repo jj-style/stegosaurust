@@ -9,8 +9,11 @@ use itertools::Itertools;
 #[derive(StructOpt)]
 #[structopt(name="stegosaurust", about="hide text in images, using rust.")]
 pub struct Opt {
-    #[structopt(short,long)]
+    #[structopt(long)]
     debug: bool,
+
+    #[structopt(short,long)]
+    decode: bool,
 
     /// Input file
     #[structopt(parse(from_os_str))]
@@ -22,21 +25,31 @@ pub struct Opt {
 }
 
 pub fn run(opt: Opt) -> Result<(), Box<dyn std::error::Error>> {
-    let img = ImageReader::open(opt.input)?.decode()?;
+    let img = ImageReader::open(opt.input.clone())?.decode()?;
     let mut rgb8_img: RgbImage = img.into_rgb8();
 
+    if opt.decode {
+        todo!("implement decoding of message from image");
+    } else {
+        encode(&mut rgb8_img, opt)?
+    }
+    Ok(())    
+}
+
+fn encode(img: &mut RgbImage, opt: Opt) -> Result<(), Box<dyn std::error::Error>> {
     // TODO: move to struct-opt
     let msg = "hello world".as_bytes();
     let mut binary_msg = String::with_capacity(msg.len()*7);
+    // TODO: map this to enum, or better just parse to int (0,1)
     for byte in msg {
         binary_msg += &format!("{:b}", byte);
     }
     
     let mut ctr = 0;
     for chunk in &binary_msg.chars().chunks(3) {
-        let x = ctr % rgb8_img.width();
-        let y = ctr / rgb8_img.width();
-        let pixel = rgb8_img.get_pixel_mut(x, y);
+        let x = ctr % img.width();
+        let y = ctr / img.width();
+        let pixel = img.get_pixel_mut(x, y);
         for (idx, bit) in chunk.enumerate() {
             match bit {
                 '0' => pixel[idx] &= 0,
@@ -47,10 +60,10 @@ pub fn run(opt: Opt) -> Result<(), Box<dyn std::error::Error>> {
         ctr+=1;
     }
     match opt.output {
-        Some(path) => rgb8_img.save(path)?,
+        Some(path) => img.save(path)?,
         None => {
             let mut out = std::io::stdout();
-            out.write_all(&rgb8_img.into_raw())?;
+            out.write_all(img.as_raw())?;
             out.flush()?;
         }
     }
