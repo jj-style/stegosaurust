@@ -403,6 +403,7 @@ name = "stegosaurust"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "atty",
  "image",
  "structopt",
 ]

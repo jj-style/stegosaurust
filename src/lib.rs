@@ -1,8 +1,10 @@
 use std::path::PathBuf;
 use std::io::{Write,stdin,stdout};
+use std::fs::File;
 
 use structopt::StructOpt;
 use anyhow::{Context,Result,bail};
+use atty::Stream;
 use image::io::Reader as ImageReader;
 use image::{ImageFormat};
 
@@ -10,7 +12,7 @@ mod steganography;
 use steganography::{Lsb,Steganography};
 
 #[derive(StructOpt)]
-#[structopt(name="🦕 Stegosaurust", about="hide text in images, using rust.")]
+#[structopt(name="🦕 Stegosaurust", about="Hide text in images, using rust.")]
 pub struct Opt {
     #[structopt(short,long)]
     decode: bool,
@@ -49,23 +51,28 @@ pub fn run(opt: Opt) -> Result<()> {
 
     if opt.decode {
         let result = lsb.decode(&rgb8_img).context("failed to decode message from image")?;
+        // TODO: do other things here - encrypt/base64
         if let Some(path) = opt.output {
-            todo!("{}", format!("write decoded message to path {}", path.to_str().unwrap()));
+            let mut f = File::create(&path).context(format!("failed to create file: {}", path.to_str().unwrap()))?;
+            f.write_all(&result).context("failed to write message to file")?;
         } else {
-            println!("{}", String::from_utf8(result).unwrap());
+            let result = String::from_utf8(result).context("failed to convert message from utf8")?;
+            println!("{}", result);
         }
 
     } else {
         let message = match &opt.input {
             Some(path) => {
-                std::fs::read_to_string(path)?
+                std::fs::read_to_string(path).context(format!("Failed to read {}", path.to_str().unwrap()))?
             },
             None => {
                 let mut buf = String::new();
-                print!("Enter message to encode: ");
-                let _ = stdout().flush();
+                if atty::is(Stream::Stdin) {
+                    print!("Enter message to encode: ");
+                    let _ = stdout().flush();
+                }
                 stdin().read_line(&mut buf)?;
-                buf
+                buf.trim().to_owned()
             }
         };
         let result = lsb.encode(&rgb8_img, message.as_bytes()).context("failed to encode message")?;
