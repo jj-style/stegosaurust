@@ -1,27 +1,23 @@
-use std::error::Error;
 use image::RgbImage;
+use anyhow::Result;
 
 /// Behaviour to encode a message into an image and decode the message back out
 pub trait Steganography {
-    fn encode(&self, msg: &str) -> Result<RgbImage, Box<dyn Error>>;
-    fn decode(&self, img: RgbImage) -> Result<String, Box<dyn Error>>;
+    fn encode(&self, img: &RgbImage, msg: &str) -> Result<RgbImage>;
+    fn decode(&self, img: &RgbImage) -> Result<String>;
 }
 
 /// Least Significant Bit Steganography Method
-pub struct Lsb {
-    pub img: RgbImage
-}
+pub struct Lsb;
 
 impl Lsb {
-    pub fn new(img: RgbImage) -> Self {
-        Lsb{
-            img
-        }
+    pub fn new() -> Self {
+        Lsb{}
     }
 }
 
 impl Steganography for Lsb {
-    fn encode(&self, msg: &str) -> Result<RgbImage, Box<dyn Error>> {
+    fn encode(&self, img: &RgbImage, msg: &str) -> Result<RgbImage> {
         let mut binary_msg = String::with_capacity(msg.len()*7);
         // TODO: map this to enum, or better just parse to int (0,1)
         for byte in msg.as_bytes() {
@@ -29,7 +25,7 @@ impl Steganography for Lsb {
         }
         let binary_msg: Vec<u8> = binary_msg.chars().map(|c| c.to_digit(10).unwrap() as u8).collect();
 
-        let mut img = self.img.clone();
+        let mut img = img.clone();
         
         let mut ctr = 0;
         for chunk in binary_msg.chunks(3) {
@@ -48,7 +44,7 @@ impl Steganography for Lsb {
         Ok(img)
     }
 
-    fn decode(&self, img: RgbImage) -> Result<String, Box<dyn Error>> {
+    fn decode(&self, img: &RgbImage) -> Result<String> {
         todo!("implement decoding")
     }
 }
