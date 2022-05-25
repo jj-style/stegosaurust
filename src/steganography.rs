@@ -3,8 +3,8 @@ use anyhow::Result;
 
 /// Behaviour to encode a message into an image and decode the message back out
 pub trait Steganography {
-    fn encode(&self, img: &RgbImage, msg: &str) -> Result<RgbImage>;
-    fn decode(&self, img: &RgbImage) -> Result<String>;
+    fn encode(&self, img: &RgbImage, msg: &[u8]) -> Result<RgbImage>;
+    fn decode(&self, img: &RgbImage) -> Result<&[u8]>;
 }
 
 /// Least Significant Bit Steganography Method
@@ -17,10 +17,10 @@ impl Lsb {
 }
 
 impl Steganography for Lsb {
-    fn encode(&self, img: &RgbImage, msg: &str) -> Result<RgbImage> {
+    fn encode(&self, img: &RgbImage, msg: &[u8]) -> Result<RgbImage> {
         let mut binary_msg = String::with_capacity(msg.len()*7);
         // TODO: map this to enum, or better just parse to int (0,1)
-        for byte in msg.as_bytes() {
+        for byte in msg {
             binary_msg += &format!("{:b}", byte);
         }
         let binary_msg: Vec<u8> = binary_msg.chars().map(|c| c.to_digit(10).unwrap() as u8).collect();
@@ -44,7 +44,7 @@ impl Steganography for Lsb {
         Ok(img)
     }
 
-    fn decode(&self, img: &RgbImage) -> Result<String> {
+    fn decode(&self, img: &RgbImage) -> Result<&[u8]> {
         todo!("implement decoding")
     }
 }

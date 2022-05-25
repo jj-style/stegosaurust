@@ -4,7 +4,7 @@ use std::io::Write;
 use structopt::StructOpt;
 use anyhow::{Context,Result,bail};
 use image::io::Reader as ImageReader;
-use image::{guess_format,ImageFormat};
+use image::{ImageFormat};
 
 
 mod steganography;
@@ -31,10 +31,9 @@ pub struct Opt {
 pub fn run(opt: Opt) -> Result<()> {
     let img = ImageReader::open(opt.input.clone())?.decode()?;
     let rgb8_img = img.into_rgb8();
-    // TODO: this check is failing, do elsehow (file extension)
-    let format = guess_format(&rgb8_img).with_context(|| format!("error processing {}",opt.input.to_str().unwrap()))?;
-    if format == ImageFormat::Jpeg {
-        bail!("Cannot use Jpeg for steganography");
+    match ImageFormat::from_path(&opt.input).with_context(|| format!("error processing {}",opt.input.to_str().unwrap()))? {
+        ImageFormat::Jpeg => bail!("Cannot use Jpeg for steganography"),
+        _ => {}
     }
 
     let lsb = Lsb::new();
@@ -42,7 +41,7 @@ pub fn run(opt: Opt) -> Result<()> {
     if opt.decode {
         todo!("implement decoding of message from image");
     } else {
-        let result = lsb.encode(&rgb8_img, "hello world").context("failed to encode message")?;
+        let result = lsb.encode(&rgb8_img, b"hello world").context("failed to encode message")?;
         match opt.output {
             Some(path) => result.save(path)?,
             None => {
