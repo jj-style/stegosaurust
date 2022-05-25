@@ -6,7 +6,6 @@ use anyhow::{Context,Result,bail};
 use image::io::Reader as ImageReader;
 use image::{ImageFormat};
 
-
 mod steganography;
 use steganography::{Lsb,Steganography};
 
@@ -43,11 +42,11 @@ pub fn run(opt: Opt) -> Result<()> {
         if let Some(path) = opt.output {
             todo!("{}", format!("write decoded message to path {}", path.to_str().unwrap()));
         } else {
-            println!("{}", std::str::from_utf8(result)?);
+            println!("{}", String::from_utf8(result).unwrap());
         }
 
     } else {
-        let result = lsb.encode(&rgb8_img, b"hello world").context("failed to encode message")?;
+        let result = lsb.encode(&rgb8_img, b"hello world!").context("failed to encode message")?;
         match opt.output {
             Some(path) => result.save(path)?,
             None => {

@@ -1,12 +1,12 @@
-use image::RgbImage;
-use anyhow::Result;
+use image::{RgbImage,Pixel};
+use anyhow::{Result,bail};
 
-const END: &[u8] = b"$t3g";
+const END: &[u8] = b"$T3G";
 
 /// Behaviour to encode a message into an image and decode the message back out
 pub trait Steganography {
     fn encode(&self, img: &RgbImage, msg: &[u8]) -> Result<RgbImage>;
-    fn decode(&self, img: &RgbImage) -> Result<&[u8]>;
+    fn decode(&self, img: &RgbImage) -> Result<Vec<u8>>;
 }
 
 /// Least Significant Bit Steganography Method
@@ -22,12 +22,12 @@ impl Steganography for Lsb {
     fn encode(&self, img: &RgbImage, msg: &[u8]) -> Result<RgbImage> {
         let msg = [msg, END].concat();
 
-        let mut binary_msg = String::with_capacity(msg.len()*7);
+        let mut binary_msg = String::with_capacity(msg.len()*8);
         for byte in msg {
-            binary_msg += &format!("{:b}", byte);
+            binary_msg += &format!("{:08b}", byte);
         }
         let binary_msg: Vec<u8> = binary_msg.chars().map(|c| c.to_digit(10).unwrap() as u8).collect();
-
+        
         let mut img = img.clone();
         
         let mut ctr = 0;
@@ -37,9 +37,9 @@ impl Steganography for Lsb {
             let pixel = img.get_pixel_mut(x, y);
             for (idx, bit) in chunk.into_iter().enumerate() {
                 if *bit == 0 {
-                    pixel[idx] &= bit;
+                    pixel[idx] &= 0;
                 } else if *bit == 1 {
-                    pixel[idx] |= bit;
+                    pixel[idx] |= 1;
                 }
             } 
             ctr+=1;
@@ -47,7 +47,41 @@ impl Steganography for Lsb {
         Ok(img)
     }
 
-    fn decode(&self, img: &RgbImage) -> Result<&[u8]> {
-        todo!("implement decoding")
+    fn decode(&self, img: &RgbImage) -> Result<Vec<u8>> {
+        let mut bitstream: Vec<u8> = Vec::new();
+        
+        let mut endstream = String::new();
+        for byte in END {
+            endstream += &format!("{:08b}", byte);
+        }
+
+        let end = endstream.chars().map(|c| c.to_digit(10).unwrap() as u8).collect::<Vec<u8>>();
+        
+        'outer: for (_,_,pixel) in img.enumerate_pixels() {
+            for value in pixel.channels() {
+                if bitstream.iter().rev().take(end.len()).rev().map(|v| *v).collect::<Vec<u8>>().iter().eq(end.iter()) {
+                    break 'outer;
+                }
+                bitstream.push(value & 1);
+            }
+        }
+
+        if bitstream.iter().rev().take(end.len()).rev().map(|v| *v).collect::<Vec<u8>>().iter().ne(end.iter()) {
+            bail!("encoded message could not be found in the image");
+        }
+
+        // message found in the bitstream, remove the END indicator
+        bitstream.truncate(bitstream.len() - end.len());
+        let mut msg = Vec::new();
+        for chrs in bitstream.chunks(8) {
+            let binval = u8::from_str_radix(
+                &chrs.iter()
+                .map(|c| format!{"{}",c})
+                .collect::<Vec<String>>()
+                .join(""), 2)
+                .expect("not a binary number");
+            msg.push(binval);
+        }
+        Ok(String::from_utf8(msg)?.as_bytes().to_vec())
     }
 }
