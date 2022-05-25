@@ -13,8 +13,8 @@ use steganography::{Lsb,Steganography};
 #[derive(StructOpt)]
 #[structopt(name="stegosaurust", about="hide text in images, using rust.")]
 pub struct Opt {
-    #[structopt(long)]
-    debug: bool,
+    // #[structopt(long)]
+    // debug: bool,
 
     #[structopt(short,long)]
     decode: bool,
@@ -29,7 +29,7 @@ pub struct Opt {
 }
 
 pub fn run(opt: Opt) -> Result<()> {
-    let img = ImageReader::open(opt.input.clone())?.decode()?;
+    let img = ImageReader::open(opt.input.clone()).context(format!("opening {}", opt.input.to_str().unwrap()))?.decode()?;
     let rgb8_img = img.into_rgb8();
     match ImageFormat::from_path(&opt.input).with_context(|| format!("error processing {}",opt.input.to_str().unwrap()))? {
         ImageFormat::Jpeg => bail!("Cannot use Jpeg for steganography"),
@@ -39,7 +39,13 @@ pub fn run(opt: Opt) -> Result<()> {
     let lsb = Lsb::new();
 
     if opt.decode {
-        todo!("implement decoding of message from image");
+        let result = lsb.decode(&rgb8_img).context("failed to decode message from image")?;
+        if let Some(path) = opt.output {
+            todo!("{}", format!("write decoded message to path {}", path.to_str().unwrap()));
+        } else {
+            println!("{}", std::str::from_utf8(result)?);
+        }
+
     } else {
         let result = lsb.encode(&rgb8_img, b"hello world").context("failed to encode message")?;
         match opt.output {
