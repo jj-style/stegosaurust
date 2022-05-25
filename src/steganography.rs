@@ -1,6 +1,8 @@
 use image::RgbImage;
 use anyhow::Result;
 
+const END: &[u8] = b"$t3g";
+
 /// Behaviour to encode a message into an image and decode the message back out
 pub trait Steganography {
     fn encode(&self, img: &RgbImage, msg: &[u8]) -> Result<RgbImage>;
@@ -18,8 +20,9 @@ impl Lsb {
 
 impl Steganography for Lsb {
     fn encode(&self, img: &RgbImage, msg: &[u8]) -> Result<RgbImage> {
+        let msg = [msg, END].concat();
+
         let mut binary_msg = String::with_capacity(msg.len()*7);
-        // TODO: map this to enum, or better just parse to int (0,1)
         for byte in msg {
             binary_msg += &format!("{:b}", byte);
         }
