@@ -85,3 +85,19 @@ impl Steganography for Lsb {
         Ok(String::from_utf8(msg)?.as_bytes().to_vec())
     }
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_lsb_steganography() {
+        let img = RgbImage::new(32, 32);
+        let lsb = Lsb{};
+        let secret_message = "🦕 hiding text!".as_bytes();
+        let encoded: RgbImage = lsb.encode(&img, secret_message).unwrap();
+        assert_eq!(lsb.decode(&encoded).unwrap(), secret_message);
+    }
+    
+}
