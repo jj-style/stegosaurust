@@ -1,8 +1,6 @@
-use std::path::PathBuf;
 use std::io::{Write,Read,stdin,stdout};
 use std::fs::File;
 
-use structopt::StructOpt;
 use anyhow::{Context,Result,bail};
 use atty::Stream;
 use image::io::Reader as ImageReader;
@@ -11,36 +9,9 @@ use base64;
 
 mod steganography;
 use steganography::{Lsb,Steganography};
+pub mod cli;
 
-#[derive(StructOpt)]
-#[structopt(name="🦕 Stegosaurust", about="Hide text in images, using rust.")]
-pub struct Opt {
-    #[structopt(short,long)]
-    decode: bool,
-    
-    /// Encode/decode with base64
-    #[structopt(short,long)]
-    base64: bool,
-
-    /// Encrypt the text before encoding it with AES-256-CBC
-    #[structopt(short,long)]
-    _key: Option<String>,
-
-    /// Output file, stdout if not present
-    #[structopt(short,long,parse(from_os_str))]
-    output: Option<PathBuf>,
-
-    /// Input file to encode
-    #[structopt(short,long,parse(from_os_str),conflicts_with="decode")]
-    input: Option<PathBuf>,
-
-    /// Input image
-    #[structopt(parse(from_os_str))]
-    image: PathBuf,
-
-}
-
-pub fn run(opt: Opt) -> Result<()> {
+pub fn run(opt: cli::Opt) -> Result<()> {
     let img = ImageReader::open(opt.image.clone()).context(format!("opening {}", opt.image.to_str().unwrap()))?.decode()?;
     let rgb8_img = img.into_rgb8();
     match ImageFormat::from_path(&opt.image).with_context(|| format!("error processing {}",opt.image.to_str().unwrap()))? {
