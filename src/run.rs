@@ -8,7 +8,7 @@ use image::{ImageFormat};
 use base64;
 
 use crate::cli;
-use crate::steganography::{Lsb,Steganography};
+use crate::steganography::{Lsb,Steganography,END};
 
 pub fn run(opt: cli::Opt) -> Result<()> {
     let img = ImageReader::open(opt.image.clone()).context(format!("opening {}", opt.image.to_str().unwrap()))?.decode()?;
@@ -58,6 +58,12 @@ pub fn run(opt: cli::Opt) -> Result<()> {
         // perform transformations if necessary
         if opt.base64 {
             message = base64::encode(&message).as_bytes().to_vec();
+        }
+
+        // check for message too long!
+        let max_msg_len = ((rgb8_img.width()*rgb8_img.height()*3) as usize - (END.len()*8)) / 8;
+        if message.len() > max_msg_len {
+            bail!("Mesesage is too long, exceeds capacity that can fit in the image supplied.");
         }
 
         // encode

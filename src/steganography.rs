@@ -1,7 +1,7 @@
 use image::{RgbImage,Pixel};
 use anyhow::{Result,bail};
 
-const END: &[u8] = b"$T3G";
+pub const END: &[u8] = b"$T3G";
 
 /// Behaviour to encode a message into an image and decode the message back out
 pub trait Steganography {
