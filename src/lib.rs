@@ -1,5 +1,5 @@
 use std::path::PathBuf;
-use std::io::{Write,stdin,stdout};
+use std::io::{Write,Read,stdin,stdout};
 use std::fs::File;
 
 use structopt::StructOpt;
@@ -7,6 +7,7 @@ use anyhow::{Context,Result,bail};
 use atty::Stream;
 use image::io::Reader as ImageReader;
 use image::{ImageFormat};
+use base64;
 
 mod steganography;
 use steganography::{Lsb,Steganography};
@@ -19,7 +20,7 @@ pub struct Opt {
     
     /// Encode/decode with base64
     #[structopt(short,long)]
-    _base64: bool,
+    base64: bool,
 
     /// Encrypt the text before encoding it with AES-256-CBC
     #[structopt(short,long)]
@@ -50,8 +51,11 @@ pub fn run(opt: Opt) -> Result<()> {
     let lsb = Lsb::new();
 
     if opt.decode {
-        let result = lsb.decode(&rgb8_img).context("failed to decode message from image")?;
+        let mut result = lsb.decode(&rgb8_img).context("failed to decode message from image")?;
         // TODO: do other things here - encrypt/base64
+        if opt.base64 {
+            result = base64::decode(result).context("failed to decode as base64")?;
+        }
         if let Some(path) = opt.output {
             let mut f = File::create(&path).context(format!("failed to create file: {}", path.to_str().unwrap()))?;
             f.write_all(&result).context("failed to write message to file")?;
@@ -61,9 +65,14 @@ pub fn run(opt: Opt) -> Result<()> {
         }
 
     } else {
-        let message = match &opt.input {
+        // read message to encode to image from file/stdin
+        let mut message = match &opt.input {
             Some(path) => {
-                std::fs::read_to_string(path).context(format!("Failed to read {}", path.to_str().unwrap()))?
+                let mut file = File::open(path).context(format!("failed to read {}", path.to_str().unwrap()))?;
+                let mut buffer = Vec::new();
+                file.read_to_end(&mut buffer)?;
+                buffer
+                // std::fs::read_to_string(path).context(format!("Failed to read {}", path.to_str().unwrap()))?
             },
             None => {
                 let mut buf = String::new();
@@ -72,10 +81,17 @@ pub fn run(opt: Opt) -> Result<()> {
                     let _ = stdout().flush();
                 }
                 stdin().read_line(&mut buf)?;
-                buf.trim().to_owned()
+                buf.as_bytes().to_vec()
             }
         };
-        let result = lsb.encode(&rgb8_img, message.as_bytes()).context("failed to encode message")?;
+        
+        // perform transformations if necessary
+        if opt.base64 {
+            message = base64::encode(&message).as_bytes().to_vec();
+        }
+
+        // encode
+        let result = lsb.encode(&rgb8_img, &message).context("failed to encode message")?;
         match opt.output {
             Some(path) => result.save(path)?,
             None => {
