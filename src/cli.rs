@@ -4,6 +4,7 @@ use structopt::StructOpt;
 #[derive(StructOpt)]
 #[structopt(name="🦕 Stegosaurust", about="Hide text in images, using rust.")]
 pub struct Opt {
+    /// Decode a message from the image
     #[structopt(short,long)]
     pub decode: bool,
     
