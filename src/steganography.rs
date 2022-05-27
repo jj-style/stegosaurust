@@ -82,7 +82,8 @@ impl Steganography for Lsb {
                 .expect("not a binary number");
             msg.push(binval);
         }
-        Ok(String::from_utf8(msg)?.as_bytes().to_vec())
+        // Ok(String::from_utf8(msg)?.as_bytes().to_vec())
+        Ok(msg)
     }
 }
 
