@@ -35,8 +35,13 @@ pub fn run(opt: cli::Opt) -> Result<()> {
 
     if opt.decode {
         let mut result = lsb.decode(&rgb8_img).context("failed to decode message from image")?;
+        
+        // perform transformations if necessary, decode then decrypt
+        if opt.base64 {
+            result = base64::decode(result).context("failed to decode as base64")?;
+        }
 
-        if let Some(key) = &opt.key {
+        if let Some(key) = opt.key {
             // TODO: short message not encrypted but attempt to decrypt = panicc!
             let (salt, rest) = result.split_at(22);
             let salt = Salt::new(std::str::from_utf8(salt).unwrap()).unwrap();
@@ -51,20 +56,15 @@ pub fn run(opt: cli::Opt) -> Result<()> {
             let cipher = Aes128CbcDec::new_from_slices(&password_hash.hash.unwrap().as_bytes(), &iv).unwrap();
             result = cipher.decrypt_padded_vec_mut::<Pkcs7>(&rest).context("decryption failed")?;
         }
-        
-        if opt.base64 || opt.key.is_some() {
-            result = base64::decode(result).context("failed to decode as base64")?;
-        }
-
+ 
         if let Some(path) = opt.output {
             let mut f = File::create(&path).context(format!("failed to create file: {}", path.to_str().unwrap()))?;
             f.write_all(&result).context("failed to write message to file")?;
         } else {
             let result = match String::from_utf8(result.clone()){
                 Ok(s) => s,
-                Err(_) => {
-                    eprintln!("failed to convert message to utf8 string... encoding with base64");
-                    base64::encode(result)
+                Err(_) => unsafe {
+                    String::from_utf8_unchecked(result)
                 }
             };
             println!("{}", result);
@@ -89,12 +89,9 @@ pub fn run(opt: cli::Opt) -> Result<()> {
                 buf.as_bytes().to_vec()
             }
         };
-         if opt.base64 || opt.key.is_some() {
-            message = base64::encode(&message).as_bytes().to_vec();
-        }
-
-        // perform transformations if necessary
-        if let Some(key) = &opt.key {
+         
+        // perform transformations if necessary, encrypt then encode
+        if let Some(key) = opt.key {
             let salt = SaltString::generate(&mut OsRng);
             let password_hash = Pbkdf2.hash_password_customized(key.as_bytes(),
                 None, None, 
@@ -113,7 +110,11 @@ pub fn run(opt: cli::Opt) -> Result<()> {
             // println!("{:?}", base64::encode(&ciphertext));
             message = [salt.as_bytes(),&iv,&ciphertext].concat();
         }
-
+        
+        if opt.base64 {
+            message = base64::encode(&message).as_bytes().to_vec();
+        }
+        
         // check for message too long!
         let max_msg_len = ((rgb8_img.width()*rgb8_img.height()*3) as usize - (END.len()*8)) / 8;
         if message.len() > max_msg_len {
