@@ -56,13 +56,17 @@ pub fn run(opt: cli::Opt) -> Result<()> {
                 buffer
             },
             None => {
-                let mut buf = String::new();
+                let mut buffer = Vec::new();
                 if atty::is(Stream::Stdin) {
                     print!("Enter message to encode: ");
                     let _ = stdout().flush();
+                    let mut str_buf = String::new();
+                    stdin().read_line(&mut str_buf)?;
+                    buffer = str_buf.into_bytes();
+                } else {
+                    stdin().read_to_end(&mut buffer)?;
                 }
-                stdin().read_line(&mut buf)?;
-                buf.as_bytes().to_vec()
+                buffer
             }
         };
          
