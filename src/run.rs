@@ -6,18 +6,18 @@ use atty::Stream;
 use image::io::Reader as ImageReader;
 use image::{ImageFormat};
 use base64;
+use rand::{distributions::Alphanumeric, Rng};
 
 use pbkdf2::{
     password_hash::{
-        rand_core::{OsRng,RngCore},
-        PasswordHasher, SaltString,Salt
+        PasswordHasher, SaltString
     },
     Pbkdf2,Params
 };
 use aes::cipher::{block_padding::Pkcs7,KeyIvInit,BlockEncryptMut,BlockDecryptMut};
 
-type Aes128CbcEnc = cbc::Encryptor<aes::Aes128>;
-type Aes128CbcDec = cbc::Decryptor<aes::Aes128>;
+type Aes128CbcEnc = cbc::Encryptor<aes::Aes256>;
+type Aes128CbcDec = cbc::Decryptor<aes::Aes256>;
 
 
 use crate::cli;
@@ -43,17 +43,20 @@ pub fn run(opt: cli::Opt) -> Result<()> {
 
         if let Some(key) = opt.key {
             // TODO: short message not encrypted but attempt to decrypt = panicc!
-            let (salt, rest) = result.split_at(22);
-            let salt = Salt::new(std::str::from_utf8(salt).unwrap()).unwrap();
-            let (iv, rest) = rest.split_at(16);
+            let (_, rest) = result.split_at(8);
+            let (s, rest) = rest.split_at(8);
+            let s = String::from_utf8(s.to_vec()).unwrap(); 
+            let salt = SaltString::new(&s).unwrap();
             let password_hash = Pbkdf2.hash_password_customized(key.as_bytes(),
                 None, None, 
                 Params {
                     rounds: 10_000,
-                    output_length: 16,
+                    output_length: 48,
                 },
-                salt).unwrap();
-            let cipher = Aes128CbcDec::new_from_slices(&password_hash.hash.unwrap().as_bytes(), &iv).unwrap();
+                &salt).unwrap();
+            let password_hash = password_hash.hash.unwrap();
+            let (key,iv) = password_hash.as_bytes().split_at(32);
+            let cipher = Aes128CbcDec::new_from_slices(&key, &iv).unwrap();
             result = cipher.decrypt_padded_vec_mut::<Pkcs7>(&rest).context("decryption failed")?;
         }
  
@@ -86,29 +89,31 @@ pub fn run(opt: cli::Opt) -> Result<()> {
                     let _ = stdout().flush();
                 }
                 stdin().read_line(&mut buf)?;
-                buf.as_bytes().to_vec()
+                buf.trim().as_bytes().to_vec()
             }
         };
          
         // perform transformations if necessary, encrypt then encode
         if let Some(key) = opt.key {
-            let salt = SaltString::generate(&mut OsRng);
+            let s: String = rand::thread_rng()
+                .sample_iter(&Alphanumeric)
+                .take(8)
+                .map(char::from)
+                .collect();
+            let salt = SaltString::new(&s).unwrap();
             let password_hash = Pbkdf2.hash_password_customized(key.as_bytes(),
                 None, None, 
                 Params {
                     rounds: 10_000,
-                    output_length: 16,
+                    output_length: 48,
                 },
-                &salt).unwrap();
-            let mut iv = [0u8; 16];
-            OsRng.fill_bytes(&mut iv);
-            let cipher = Aes128CbcEnc::new_from_slices(&password_hash.hash.unwrap().as_bytes(), &iv).unwrap();
+                &salt
+            ).unwrap();
+            let password_hash = password_hash.hash.unwrap();
+            let (key, iv) = password_hash.as_bytes().split_at(32);
+            let cipher = Aes128CbcEnc::new_from_slices(key, iv).unwrap();
             let ciphertext = cipher.encrypt_padded_vec_mut::<Pkcs7>(&message);
-            // println!("iv={:?} ({})",hex::encode(iv), iv.len());
-            // println!("salt={:?} ({})",salt, salt.len());
-            // println!("key={:?} ({})",hex::encode(password_hash.hash.unwrap()), password_hash.hash.unwrap().len());
-            // println!("{:?}", base64::encode(&ciphertext));
-            message = [salt.as_bytes(),&iv,&ciphertext].concat();
+            message = ["Salted__".as_bytes(), &salt.as_bytes(), &ciphertext].concat();
         }
         
         if opt.base64 {
