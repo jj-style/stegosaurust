@@ -32,7 +32,7 @@ FLAGS:
 
 OPTIONS:
     -i, --input <input>      Input file to encode, stdin if not present
-    -k, --key <key>          Encrypt the text before encoding it with AES-128-CBC
+    -k, --key <key>          Encrypt the text before encoding it with AES-256-CBC
     -o, --output <output>    Output file, stdout if not present
 
 ARGS:

@@ -12,7 +12,7 @@ pub struct Opt {
     #[structopt(short,long)]
     pub base64: bool,
 
-    /// Encrypt the text before encoding it with AES-128-CBC
+    /// Encrypt the text before encoding it with AES-256-CBC
     #[structopt(short,long)]
     pub key: Option<String>,
 
