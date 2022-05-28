@@ -40,4 +40,13 @@ ARGS:
 ```
 
 # Installation
-**TODO**
+## From Source
+Build and install the executable from the source code.
+```bash
+git clone https://github.com/jj-style/stegosaurust.git
+cd stegosaurust
+cargo install --path .
+
+# to uninstall :(
+cargo uninstall stegosaurust
+```
