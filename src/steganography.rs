@@ -37,9 +37,9 @@ impl Steganography for Lsb {
             let pixel = img.get_pixel_mut(x, y);
             for (idx, bit) in chunk.into_iter().enumerate() {
                 if *bit == 0 {
-                    pixel[idx] &= 0;
+                    pixel[idx] &= 0b1111_1110;
                 } else if *bit == 1 {
-                    pixel[idx] |= 1;
+                    pixel[idx] |= 0b0000_0001;
                 }
             } 
             ctr+=1;
@@ -62,7 +62,7 @@ impl Steganography for Lsb {
                 if bitstream.iter().rev().take(end.len()).rev().map(|v| *v).collect::<Vec<u8>>().iter().eq(end.iter()) {
                     break 'outer;
                 }
-                bitstream.push(value & 1);
+                bitstream.push(value & 0b0000_0001);
             }
         }
 
