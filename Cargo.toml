@@ -16,3 +16,5 @@ cbc = {version = "0.1.2", features = ["std"]}
 pbkdf2 = "0.11.0"
 rand_core = { version = "0.6", features = ["std"] }
 rand = "0.8.5"
+rand_pcg = "0.3.1"
+rand_seeder = "0.2.3"

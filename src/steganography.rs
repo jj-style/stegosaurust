@@ -1,12 +1,72 @@
+use std::convert::From;
+use std::str::FromStr;
 use image::{RgbImage,Pixel};
 use anyhow::{Result,bail};
+use rand::Rng;
+use rand_pcg::Pcg64;
+use rand_seeder::Seeder;
+use structopt::StructOpt;
 
 pub const END: &[u8] = b"$T3G";
 
 /// Behaviour to encode a message into an image and decode the message back out
 pub trait Steganography {
-    fn encode(&self, img: &RgbImage, msg: &[u8]) -> Result<RgbImage>;
-    fn decode(&self, img: &RgbImage) -> Result<Vec<u8>>;
+    fn encode(&mut self, img: &RgbImage, msg: &[u8]) -> Result<RgbImage>;
+    fn decode(&mut self, img: &RgbImage) -> Result<Vec<u8>>;
+}
+
+#[derive(StructOpt)]
+pub enum StegMethod {
+    LeastSignificantBit,
+    RandomSignificantBit
+}
+
+impl FromStr for StegMethod {
+    type Err = anyhow::Error;
+    fn from_str(method: &str) -> Result<Self> {
+        match method {
+            "lsb" => Ok(Self::LeastSignificantBit),
+            "rsb" => Ok(Self::RandomSignificantBit),
+            other => bail!("unknown encoding method: {}", other)
+        }
+    }
+}
+
+#[derive(Clone)]
+enum BitMask {
+    One   = 0b0000_0001,
+    Two   = 0b0000_0010,
+    Four  = 0b0000_0100,
+    Eight = 0b0000_1000,
+}
+
+impl From<u8> for BitMask {
+    fn from(num: u8) -> Self {
+        match num {
+            1 => BitMask::One,
+            2 => BitMask::Two,
+            3 => BitMask::Four,
+            4 => BitMask::Eight,
+            other => panic!("cannot create bitmask from value {}", other)
+        }
+    }
+}
+
+pub trait BitEncoding {
+    fn encode(&mut self, bit: &u8, color_val: &mut u8);
+    fn decode(&mut self, color_val: &u8) -> u8;
+}
+
+pub struct BitEncoder {
+    encoder: Box<dyn BitEncoding>
+}
+
+impl BitEncoder {
+    pub fn new(encoder: Box<dyn BitEncoding>) -> Self {
+        BitEncoder{
+            encoder
+        }
+    }
 }
 
 /// Least Significant Bit Steganography Method
@@ -18,8 +78,57 @@ impl Lsb {
     }
 }
 
-impl Steganography for Lsb {
-    fn encode(&self, img: &RgbImage, msg: &[u8]) -> Result<RgbImage> {
+/// Random Significant Bit Steganography Method
+pub struct Rsb {
+    max: u8,
+    rng: Pcg64
+}
+
+impl Rsb {
+    pub fn new(max: u8, seed: &str) -> Self {
+        let rng: Pcg64 = Seeder::from(seed).make_rng();
+        Rsb{max, rng}
+    }
+
+    fn next_mask(&mut self) -> BitMask {
+        let n: u8 = self.rng.gen_range(1..=self.max);
+        BitMask::from(n)
+    }
+}
+
+impl BitEncoding for Rsb {
+    fn encode(&mut self, bit: &u8, color_val: &mut u8) {
+        let mask  = self.next_mask();
+        if *bit == 0 {
+            *color_val &= !(mask.clone() as u8);
+        } else if *bit == 1 {
+            *color_val |= mask.clone() as u8;
+        }
+    }
+
+    fn decode(&mut self, color_val: &u8) -> u8 {
+        let mask  = self.next_mask();
+        let c = color_val & mask as u8;
+        if c > 0 { 1 } else { 0 }
+    }
+}
+
+impl BitEncoding for Lsb {
+    fn encode(&mut self, bit: &u8, color_val: &mut u8) {
+        if *bit == 0 {
+            *color_val &= !(BitMask::One as u8);
+        } else if *bit == 1 {
+            *color_val |= BitMask::One as u8;
+        }
+    }
+
+    fn decode(&mut self, color_val: &u8) -> u8 {
+        color_val & BitMask::One as u8
+    }
+}
+
+impl Steganography for BitEncoder {
+    fn encode(&mut self, img: &RgbImage, msg: &[u8]) -> Result<RgbImage> {
         let msg = [msg, END].concat();
 
         let mut binary_msg = String::with_capacity(msg.len()*8);
@@ -36,18 +145,14 @@ impl Steganography for Lsb {
             let y = ctr / img.width();
             let pixel = img.get_pixel_mut(x, y);
             for (idx, bit) in chunk.into_iter().enumerate() {
-                if *bit == 0 {
-                    pixel[idx] &= 0b1111_1110;
-                } else if *bit == 1 {
-                    pixel[idx] |= 0b0000_0001;
-                }
+                self.encoder.encode(bit, &mut pixel[idx]);
             } 
             ctr+=1;
         }
         Ok(img)
     }
 
-    fn decode(&self, img: &RgbImage) -> Result<Vec<u8>> {
+    fn decode(&mut self, img: &RgbImage) -> Result<Vec<u8>> {
         let mut bitstream: Vec<u8> = Vec::new();
         
         let mut endstream = String::new();
@@ -62,7 +167,7 @@ impl Steganography for Lsb {
                 if bitstream.iter().rev().take(end.len()).rev().map(|v| *v).collect::<Vec<u8>>().iter().eq(end.iter()) {
                     break 'outer;
                 }
-                bitstream.push(value & 0b0000_0001);
+                bitstream.push(self.encoder.decode(value));
             }
         }
 
@@ -82,7 +187,6 @@ impl Steganography for Lsb {
                 .expect("not a binary number");
             msg.push(binval);
         }
-        // Ok(String::from_utf8(msg)?.as_bytes().to_vec())
         Ok(msg)
     }
 }
@@ -95,10 +199,71 @@ mod tests {
     #[test]
     fn test_lsb_steganography() {
         let img = RgbImage::new(32, 32);
-        let lsb = Lsb{};
+        let lsb = Box::new(Lsb::new());
+        let mut enc: Box<dyn Steganography> = Box::from(BitEncoder::new(lsb));
         let secret_message = "🦕 hiding text!".as_bytes();
-        let encoded: RgbImage = lsb.encode(&img, secret_message).unwrap();
-        assert_eq!(lsb.decode(&encoded).unwrap(), secret_message);
+        let encoded: RgbImage = enc.encode(&img, secret_message).unwrap();
+        assert_eq!(enc.decode(&encoded).unwrap(), secret_message);
+    }
+
+    #[test]
+    fn test_rsb_steganography() {
+        let img = RgbImage::new(32, 32);
+        let rsb_enc = Box::new(Rsb::new(2, "seed"));
+        let mut enc: Box<dyn Steganography> = Box::from(BitEncoder::new(rsb_enc));
+        let rsb_dec = Box::new(Rsb::new(2, "seed"));
+        let mut dec: Box<dyn Steganography> = Box::from(BitEncoder::new(rsb_dec));
+        let secret_message = "🦕 hiding text!".as_bytes();
+        let encoded: RgbImage = enc.encode(&img, secret_message).unwrap();
+        assert_eq!(dec.decode(&encoded).unwrap(), secret_message);
+    }
+    
+    #[test]
+    fn test_rsb_random_determined_from_seed() {
+        let mut rsb1 = Rsb::new(2, "seed");
+        let mut rsb2 = Rsb::new(2, "seed");
+        for _ in 0..10 {
+            assert_eq!(rsb1.rng.gen::<u8>(), rsb2.rng.gen::<u8>());
+        } 
+    }
+
+    #[test]
+    fn test_rsb_random_determined_from_seed_different() {
+        let mut rsb1 = Rsb::new(2, "seed");
+        let mut rsb2 = Rsb::new(2, "seeb");
+        let it = 1000;
+        let mut matches = Vec::with_capacity(it);
+        for _ in 0..it {
+            matches.push(rsb1.rng.gen::<u8>() == rsb2.rng.gen::<u8>());
+        }
+        assert!(matches.contains(&false));
+    }
+    
+    #[test]
+    fn test_rsb_1_decrypts_with_lsb() {
+        let img = RgbImage::new(32, 32);
+        let rsb = Box::new(Rsb::new(1, "seed"));
+        let mut rsb_enc: Box<dyn Steganography> = Box::from(BitEncoder::new(rsb));
+        let lsb = Box::new(Lsb::new());
+        let mut lsb_enc: Box<dyn Steganography> = Box::from(BitEncoder::new(lsb));
+
+        let secret_message = "🦕 hiding text!".as_bytes();
+        let encoded: RgbImage = rsb_enc.encode(&img, secret_message).unwrap();
+        assert_eq!(lsb_enc.decode(&encoded).unwrap(), secret_message);
+    }
+
+    #[test]
+    #[should_panic(expected="encoded message could not be found in the image")]
+    fn test_rsb_3_not_decrypts_with_lsb() {
+        let img = RgbImage::new(32, 32);
+        let rsb = Box::new(Rsb::new(3, "seed"));
+        let mut rsb_enc: Box<dyn Steganography> = Box::from(BitEncoder::new(rsb));
+        let lsb = Box::new(Lsb::new());
+        let mut lsb_enc: Box<dyn Steganography> = Box::from(BitEncoder::new(lsb));
+
+        let secret_message = "🦕 hiding text!".as_bytes();
+        let encoded: RgbImage = rsb_enc.encode(&img, secret_message).unwrap();
+        lsb_enc.decode(&encoded).unwrap();
     }
     
 }

@@ -1,5 +1,7 @@
 use std::path::PathBuf;
 use structopt::StructOpt;
+use crate::steganography::StegMethod;
+use anyhow::{Result,bail};
 
 #[derive(StructOpt)]
 #[structopt(name="🦕 Stegosaurust", about="Hide text in images, using rust.")]
@@ -16,6 +18,18 @@ pub struct Opt {
     #[structopt(short,long)]
     pub key: Option<String>,
 
+    /// Method to use for encoding (lsb,rsb)
+    #[structopt(short,long,default_value="lsb")]
+    pub method: StegMethod,
+
+    /// Seed for random significant bit encoding
+    #[structopt(short,long,required_if("method", "rsb"))]
+    pub seed: Option<String>,
+
+    /// Maximum bit to possible modify (1-4)
+    #[structopt(short="N",long,required_if("method", "rsb"))]
+    pub max_bit: Option<u8>,
+
     /// Output file, stdout if not present
     #[structopt(short,long,parse(from_os_str))]
     pub output: Option<PathBuf>,
@@ -27,6 +41,16 @@ pub struct Opt {
     /// Input image
     #[structopt(parse(from_os_str))]
     pub image: PathBuf,
+}
 
+impl Opt {
+    pub fn validate(&self) -> Result<()> {
+        if let Some(n) = self.max_bit {
+            if n < 1 || n > 4 {
+                bail!(format!("max-bit must be between 1-4. Got {}", n))
+            }
+        }
+        Ok(())
+    }
 }
 
