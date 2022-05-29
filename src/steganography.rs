@@ -1,9 +1,11 @@
 use std::convert::From;
+use std::str::FromStr;
 use image::{RgbImage,Pixel};
 use anyhow::{Result,bail};
 use rand::Rng;
 use rand_pcg::Pcg64;
 use rand_seeder::Seeder;
+use structopt::StructOpt;
 
 pub const END: &[u8] = b"$T3G";
 
@@ -11,6 +13,23 @@ pub const END: &[u8] = b"$T3G";
 pub trait Steganography {
     fn encode(&mut self, img: &RgbImage, msg: &[u8]) -> Result<RgbImage>;
     fn decode(&mut self, img: &RgbImage) -> Result<Vec<u8>>;
+}
+
+#[derive(StructOpt)]
+pub enum StegMethod {
+    LeastSignificantBit,
+    RandomSignificantBit
+}
+
+impl FromStr for StegMethod {
+    type Err = anyhow::Error;
+    fn from_str(method: &str) -> Result<Self> {
+        match method {
+            "lsb" => Ok(Self::LeastSignificantBit),
+            "rsb" => Ok(Self::RandomSignificantBit),
+            other => bail!("unknown encoding method: {}", other)
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -80,15 +99,10 @@ impl Rsb {
 impl BitEncoding for Rsb {
     fn encode(&mut self, bit: &u8, color_val: &mut u8) {
         let mask  = self.next_mask();
-        print!("{:08b}", *color_val);
         if *bit == 0 {
-            print!(" &");
             *color_val &= !(mask.clone() as u8);
-            println!(" {:08b} = {:08b}", !(mask as u8), *color_val);
         } else if *bit == 1 {
-            print!(" |");
             *color_val |= mask.clone() as u8;
-            println!(" {:08b} = {:08b}", mask as u8, *color_val);
         }
     }
 

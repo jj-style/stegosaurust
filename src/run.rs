@@ -8,7 +8,7 @@ use image::{ImageFormat};
 use base64;
 
 use crate::cli;
-use crate::steganography::{Lsb,END,BitEncoder,Steganography};
+use crate::steganography::{Lsb,Rsb,END,BitEncoder,Steganography,StegMethod};
 use crate::crypto;
 
 pub fn run(opt: cli::Opt) -> Result<()> {
@@ -19,8 +19,17 @@ pub fn run(opt: cli::Opt) -> Result<()> {
         _ => {}
     }
 
-    let lsb = Box::new(Lsb::new());
-    let mut encoder: Box<dyn Steganography> = Box::new(BitEncoder::new(lsb));
+    // create encoder
+    let mut encoder: Box<dyn Steganography> = match opt.method {
+        StegMethod::LeastSignificantBit => {
+            let lsb = Box::new(Lsb::new());
+            Box::new(BitEncoder::new(lsb))
+        },
+        StegMethod::RandomSignificantBit => {
+            let rsb = Box::new(Rsb::new(opt.max_bit.unwrap(), &(opt.seed.unwrap())));
+            Box::new(BitEncoder::new(rsb))
+        }
+    };
 
     if opt.decode {
         let mut result = encoder.decode(&rgb8_img).context("failed to decode message from image")?;
