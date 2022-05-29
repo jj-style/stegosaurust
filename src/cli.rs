@@ -46,7 +46,7 @@ pub struct Opt {
 impl Opt {
     pub fn validate(&self) -> Result<()> {
         if let Some(n) = self.max_bit {
-            if n < 1 || n > 4 {
+            if !(1..=4).contains(&n) {
                 bail!(format!("max-bit must be between 1-4. Got {}", n))
             }
         }

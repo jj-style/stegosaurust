@@ -98,9 +98,9 @@ impl BitEncoding for Rsb {
     fn encode(&mut self, bit: &u8, color_val: &mut u8) {
         let mask = self.next_mask();
         if *bit == 0 {
-            *color_val &= !(mask.clone() as u8);
+            *color_val &= !(mask as u8);
         } else if *bit == 1 {
-            *color_val |= mask.clone() as u8;
+            *color_val |= mask as u8;
         }
     }
 
@@ -144,15 +144,13 @@ impl Steganography for BitEncoder {
 
         let mut img = img.clone();
 
-        let mut ctr = 0;
-        for chunk in binary_msg.chunks(3) {
-            let x = ctr % img.width();
-            let y = ctr / img.width();
+        for (ctr, chunk) in binary_msg.chunks(3).enumerate() {
+            let x = ctr as u32 % img.width();
+            let y = ctr as u32 / img.width();
             let pixel = img.get_pixel_mut(x, y);
-            for (idx, bit) in chunk.into_iter().enumerate() {
+            for (idx, bit) in chunk.iter().enumerate() {
                 self.encoder.encode(bit, &mut pixel[idx]);
             }
-            ctr += 1;
         }
         Ok(img)
     }
@@ -177,7 +175,7 @@ impl Steganography for BitEncoder {
                     .rev()
                     .take(end.len())
                     .rev()
-                    .map(|v| *v)
+                    .copied()
                     .collect::<Vec<u8>>()
                     .iter()
                     .eq(end.iter())
@@ -193,7 +191,7 @@ impl Steganography for BitEncoder {
             .rev()
             .take(end.len())
             .rev()
-            .map(|v| *v)
+            .copied()
             .collect::<Vec<u8>>()
             .iter()
             .ne(end.iter())

@@ -36,8 +36,8 @@ pub fn encrypt(plaintext: &[u8], key: &[u8]) -> Result<Vec<u8>> {
     let password_hash = password_hash.hash.unwrap();
     let (key, iv) = password_hash.as_bytes().split_at(32);
     let cipher = Aes128CbcEnc::new_from_slices(key, iv).unwrap();
-    let ciphertext = cipher.encrypt_padded_vec_mut::<Pkcs7>(&plaintext);
-    let message = ["Salted__".as_bytes(), &salt.as_bytes(), &ciphertext].concat();
+    let ciphertext = cipher.encrypt_padded_vec_mut::<Pkcs7>(plaintext);
+    let message = ["Salted__".as_bytes(), salt.as_bytes(), &ciphertext].concat();
     Ok(message)
 }
 
@@ -64,8 +64,8 @@ pub fn decrypt(ciphertext: &[u8], key: &[u8]) -> Result<Vec<u8>> {
         .unwrap();
     let password_hash = password_hash.hash.unwrap();
     let (key, iv) = password_hash.as_bytes().split_at(32);
-    let cipher = Aes128CbcDec::new_from_slices(&key, &iv).unwrap();
-    let plaintext = cipher.decrypt_padded_vec_mut::<Pkcs7>(&rest)?;
+    let cipher = Aes128CbcDec::new_from_slices(key, iv).unwrap();
+    let plaintext = cipher.decrypt_padded_vec_mut::<Pkcs7>(rest)?;
     Ok(plaintext)
 }
 

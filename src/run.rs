@@ -3,7 +3,7 @@ use std::io::{stdin, stdout, Read, Write};
 
 use anyhow::{bail, Context, Result};
 use atty::Stream;
-use base64;
+
 use image::io::Reader as ImageReader;
 use image::ImageFormat;
 
@@ -16,6 +16,7 @@ pub fn run(opt: cli::Opt) -> Result<()> {
         .context(format!("opening {}", opt.image.to_str().unwrap()))?
         .decode()?;
     let rgb8_img = img.into_rgb8();
+
     match ImageFormat::from_path(&opt.image)
         .with_context(|| format!("error processing {}", opt.image.to_str().unwrap()))?
     {
