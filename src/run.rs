@@ -5,7 +5,6 @@ use anyhow::{bail, Context, Result};
 use atty::Stream;
 
 use image::io::Reader as ImageReader;
-use image::ImageFormat;
 
 use crate::cli;
 use crate::crypto;
@@ -16,13 +15,6 @@ pub fn run(opt: cli::Opt) -> Result<()> {
         .context(format!("opening {}", opt.image.to_str().unwrap()))?
         .decode()?;
     let rgb8_img = img.into_rgb8();
-
-    match ImageFormat::from_path(&opt.image)
-        .with_context(|| format!("error processing {}", opt.image.to_str().unwrap()))?
-    {
-        ImageFormat::Jpeg => bail!("Cannot use Jpeg for steganography"),
-        _ => {}
-    }
 
     // create encoder
     let mut encoder: Box<dyn Steganography> = match opt.method {
