@@ -1,41 +1,41 @@
+use crate::steganography::StegMethod;
+use anyhow::{bail, Result};
 use std::path::PathBuf;
 use structopt::StructOpt;
-use crate::steganography::StegMethod;
-use anyhow::{Result,bail};
 
 #[derive(StructOpt)]
-#[structopt(name="🦕 Stegosaurust", about="Hide text in images, using rust.")]
+#[structopt(name = "🦕 Stegosaurust", about = "Hide text in images, using rust.")]
 pub struct Opt {
     /// Decode a message from the image
-    #[structopt(short,long)]
+    #[structopt(short, long)]
     pub decode: bool,
-    
+
     /// Encode/decode with base64
-    #[structopt(short,long)]
+    #[structopt(short, long)]
     pub base64: bool,
 
     /// Encrypt the text before encoding it with AES-256-CBC
-    #[structopt(short,long)]
+    #[structopt(short, long)]
     pub key: Option<String>,
 
     /// Method to use for encoding (lsb,rsb)
-    #[structopt(short,long,default_value="lsb")]
+    #[structopt(short, long, default_value = "lsb")]
     pub method: StegMethod,
 
     /// Seed for random significant bit encoding
-    #[structopt(short,long,required_if("method", "rsb"))]
+    #[structopt(short, long, required_if("method", "rsb"))]
     pub seed: Option<String>,
 
     /// Maximum bit to possible modify (1-4)
-    #[structopt(short="N",long,required_if("method", "rsb"))]
+    #[structopt(short = "N", long, required_if("method", "rsb"))]
     pub max_bit: Option<u8>,
 
     /// Output file, stdout if not present
-    #[structopt(short,long,parse(from_os_str))]
+    #[structopt(short, long, parse(from_os_str))]
     pub output: Option<PathBuf>,
 
     /// Input file to encode, stdin if not present
-    #[structopt(short,long,parse(from_os_str),conflicts_with="decode")]
+    #[structopt(short, long, parse(from_os_str), conflicts_with = "decode")]
     pub input: Option<PathBuf>,
 
     /// Input image
@@ -53,4 +53,3 @@ impl Opt {
         Ok(())
     }
 }
-

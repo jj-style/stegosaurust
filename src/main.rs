@@ -1,6 +1,6 @@
-use stegosaurust::{run,cli};
+use anyhow::{Context, Result};
+use stegosaurust::{cli, run};
 use structopt::StructOpt;
-use anyhow::{Context,Result};
 
 fn main() -> Result<()> {
     let opt = cli::Opt::from_args();
