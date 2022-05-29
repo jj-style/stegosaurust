@@ -9,6 +9,30 @@ pub trait Steganography {
     fn decode(&self, img: &RgbImage) -> Result<Vec<u8>>;
 }
 
+enum BitMask {
+    One   = 0b1111_1110,
+    Two   = 0b1111_1101,
+    Four  = 0b1111_1011,
+    Eight = 0b1111_0111,
+}
+
+pub trait BitEncoding {
+    fn encode(&self, bit: &u8, color_val: &mut u8);
+    fn decode(&self, color_val: &u8) -> u8;
+}
+
+pub struct BitEncoder {
+    encoder: Box<dyn BitEncoding>
+}
+
+impl BitEncoder {
+    pub fn new(encoder: Box<dyn BitEncoding>) -> Self {
+        BitEncoder{
+            encoder
+        }
+    }
+}
+
 /// Least Significant Bit Steganography Method
 pub struct Lsb;
 
@@ -18,7 +42,21 @@ impl Lsb {
     }
 }
 
-impl Steganography for Lsb {
+impl BitEncoding for Lsb {
+    fn encode(&self, bit: &u8, color_val: &mut u8) {
+        if *bit == 0 {
+            *color_val &= BitMask::One as u8;
+        } else if *bit == 1 {
+            *color_val |= !(BitMask::One as u8);
+        }
+    }
+
+    fn decode(&self, color_val: &u8) -> u8 {
+        color_val & !(BitMask::One as u8)
+    }
+}
+
+impl Steganography for BitEncoder {
     fn encode(&self, img: &RgbImage, msg: &[u8]) -> Result<RgbImage> {
         let msg = [msg, END].concat();
 
@@ -36,11 +74,7 @@ impl Steganography for Lsb {
             let y = ctr / img.width();
             let pixel = img.get_pixel_mut(x, y);
             for (idx, bit) in chunk.into_iter().enumerate() {
-                if *bit == 0 {
-                    pixel[idx] &= 0b1111_1110;
-                } else if *bit == 1 {
-                    pixel[idx] |= 0b0000_0001;
-                }
+                self.encoder.encode(bit, &mut pixel[idx]);
             } 
             ctr+=1;
         }
@@ -62,7 +96,7 @@ impl Steganography for Lsb {
                 if bitstream.iter().rev().take(end.len()).rev().map(|v| *v).collect::<Vec<u8>>().iter().eq(end.iter()) {
                     break 'outer;
                 }
-                bitstream.push(value & 0b0000_0001);
+                bitstream.push(self.encoder.decode(value));
             }
         }
 
@@ -95,10 +129,11 @@ mod tests {
     #[test]
     fn test_lsb_steganography() {
         let img = RgbImage::new(32, 32);
-        let lsb = Lsb{};
+        let lsb = Box::new(Lsb::new());
+        let enc = BitEncoder::new(lsb);
         let secret_message = "🦕 hiding text!".as_bytes();
-        let encoded: RgbImage = lsb.encode(&img, secret_message).unwrap();
-        assert_eq!(lsb.decode(&encoded).unwrap(), secret_message);
+        let encoded: RgbImage = enc.encode(&img, secret_message).unwrap();
+        assert_eq!(enc.decode(&encoded).unwrap(), secret_message);
     }
     
 }
