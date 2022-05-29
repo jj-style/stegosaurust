@@ -13,11 +13,12 @@ pub trait Steganography {
     fn decode(&mut self, img: &RgbImage) -> Result<Vec<u8>>;
 }
 
+#[derive(Clone)]
 enum BitMask {
-    One   = 0b1111_1110,
-    Two   = 0b1111_1101,
-    Four  = 0b1111_1011,
-    Eight = 0b1111_0111,
+    One   = 0b0000_0001,
+    Two   = 0b0000_0010,
+    Four  = 0b0000_0100,
+    Eight = 0b0000_1000,
 }
 
 impl From<u8> for BitMask {
@@ -79,30 +80,36 @@ impl Rsb {
 impl BitEncoding for Rsb {
     fn encode(&mut self, bit: &u8, color_val: &mut u8) {
         let mask  = self.next_mask();
+        print!("{:08b}", *color_val);
         if *bit == 0 {
-            *color_val &= mask as u8;
+            print!(" &");
+            *color_val &= !(mask.clone() as u8);
+            println!(" {:08b} = {:08b}", !(mask as u8), *color_val);
         } else if *bit == 1 {
-            *color_val |= !(mask as u8);
+            print!(" |");
+            *color_val |= mask.clone() as u8;
+            println!(" {:08b} = {:08b}", mask as u8, *color_val);
         }
     }
 
     fn decode(&mut self, color_val: &u8) -> u8 {
         let mask  = self.next_mask();
-        color_val & (!(mask as u8))
+        let c = color_val & mask as u8;
+        if c > 0 { 1 } else { 0 }
     }
 }
 
 impl BitEncoding for Lsb {
     fn encode(&mut self, bit: &u8, color_val: &mut u8) {
         if *bit == 0 {
-            *color_val &= BitMask::One as u8;
+            *color_val &= !(BitMask::One as u8);
         } else if *bit == 1 {
-            *color_val |= !(BitMask::One as u8);
+            *color_val |= BitMask::One as u8;
         }
     }
 
     fn decode(&mut self, color_val: &u8) -> u8 {
-        color_val & !(BitMask::One as u8)
+        color_val & BitMask::One as u8
     }
 }
 
@@ -188,16 +195,17 @@ mod tests {
     #[test]
     fn test_rsb_steganography() {
         let img = RgbImage::new(32, 32);
-        let rsb = Box::new(Rsb::new(2, "seed"));
-        let mut enc: Box<dyn Steganography> = Box::from(BitEncoder::new(rsb));
+        let rsb_enc = Box::new(Rsb::new(2, "seed"));
+        let mut enc: Box<dyn Steganography> = Box::from(BitEncoder::new(rsb_enc));
+        let rsb_dec = Box::new(Rsb::new(2, "seed"));
+        let mut dec: Box<dyn Steganography> = Box::from(BitEncoder::new(rsb_dec));
         let secret_message = "🦕 hiding text!".as_bytes();
         let encoded: RgbImage = enc.encode(&img, secret_message).unwrap();
-        assert_eq!(enc.decode(&encoded).unwrap(), secret_message);
+        assert_eq!(dec.decode(&encoded).unwrap(), secret_message);
     }
     
     #[test]
     fn test_rsb_random_determined_from_seed() {
-        let img = RgbImage::new(32, 32);
         let mut rsb1 = Rsb::new(2, "seed");
         let mut rsb2 = Rsb::new(2, "seed");
         for _ in 0..10 {
@@ -231,6 +239,7 @@ mod tests {
     }
 
     #[test]
+    #[should_panic(expected="encoded message could not be found in the image")]
     fn test_rsb_3_not_decrypts_with_lsb() {
         let img = RgbImage::new(32, 32);
         let rsb = Box::new(Rsb::new(3, "seed"));
@@ -240,7 +249,7 @@ mod tests {
 
         let secret_message = "🦕 hiding text!".as_bytes();
         let encoded: RgbImage = rsb_enc.encode(&img, secret_message).unwrap();
-        assert_ne!(lsb_enc.decode(&encoded).unwrap(), secret_message);
+        lsb_enc.decode(&encoded).unwrap();
     }
     
 }
