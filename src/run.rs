@@ -20,7 +20,7 @@ pub fn run(opt: cli::Opt) -> Result<()> {
     }
 
     let lsb = Box::new(Lsb::new());
-    let encoder = BitEncoder::new(lsb);
+    let mut encoder: Box<dyn Steganography> = Box::new(BitEncoder::new(lsb));
 
     if opt.decode {
         let mut result = encoder.decode(&rgb8_img).context("failed to decode message from image")?;
