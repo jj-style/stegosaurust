@@ -13,6 +13,7 @@ pub const END: &[u8] = b"$T3G";
 pub trait Steganography {
     fn encode(&mut self, img: &RgbImage, msg: &[u8]) -> Result<RgbImage>;
     fn decode(&mut self, img: &RgbImage) -> Result<Vec<u8>>;
+    fn max_len(&self, img: &RgbImage) -> usize;
 }
 
 #[derive(StructOpt)]
@@ -130,6 +131,10 @@ impl BitEncoding for Lsb {
 }
 
 impl Steganography for BitEncoder {
+    fn max_len(&self, img: &RgbImage) -> usize {
+        ((img.width() * img.height() * 3) as usize - (END.len() * 8)) / 8
+    }
+
     fn encode(&mut self, img: &RgbImage, msg: &[u8]) -> Result<RgbImage> {
         let msg = [msg, END].concat();
 

@@ -15,6 +15,7 @@ Easily encode messages in images:
 echo "text to hide" | stegosaurust --output encoded_image.png image.png
 stegosaurust --decode encoded_image.png 
 ```
+See the [examples](#examples) below for more usage. 
 
 # Usage
 ```
@@ -52,4 +53,15 @@ cargo install --path .
 
 # to uninstall :(
 cargo uninstall stegosaurust
+```
+
+# Examples
+The examples below assume you have installed the program ([see here](#installation)) and are in the repository directory (if not installed use `cargo run --` instead of `stegosaurust`).
+
+```bash
+# how much data can we fit in an image...
+stegosaurust --decode examples/example-2.png | mpv -
+
+# is there something hidden in the logo on the README?
+stegosaurust --decode .github/logo.png | xargs python -c "import webbrowser,sys; webbrowser.open(sys.argv[1])"
 ```

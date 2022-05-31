@@ -8,7 +8,8 @@ use image::io::Reader as ImageReader;
 
 use crate::cli;
 use crate::crypto;
-use crate::steganography::{BitEncoder, Lsb, Rsb, StegMethod, Steganography, END};
+use crate::steganography::{BitEncoder, Lsb, Rsb, StegMethod, Steganography};
+use pretty_bytes::converter::convert;
 
 pub fn run(opt: cli::Opt) -> Result<()> {
     let img = ImageReader::open(opt.image.clone())
@@ -91,10 +92,9 @@ pub fn run(opt: cli::Opt) -> Result<()> {
         }
 
         // check for message too long!
-        let max_msg_len =
-            ((rgb8_img.width() * rgb8_img.height() * 3) as usize - (END.len() * 8)) / 8;
+        let max_msg_len = encoder.max_len(&rgb8_img);
         if message.len() > max_msg_len {
-            bail!("Mesesage is too long, exceeds capacity that can fit in the image supplied.");
+            bail!("Mesesage is too long, exceeds capacity that can fit in the image supplied. {} > {}", convert(message.len() as f64), convert(max_msg_len as f64));
         }
 
         // encode
