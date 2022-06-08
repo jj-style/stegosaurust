@@ -19,7 +19,7 @@ See the [examples](#examples) below for more usage.
 
 # Usage
 ```
-🦕 Stegosaurust 0.2.0
+🦕 Stegosaurust
 Hide text in images, using rust.
 
 USAGE:
