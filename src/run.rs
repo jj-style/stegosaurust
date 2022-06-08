@@ -10,6 +10,7 @@ use crate::cli;
 use crate::crypto;
 use crate::steganography::{BitEncoder, Lsb, Rsb, StegMethod, Steganography};
 use pretty_bytes::converter::convert;
+use tabled::Table;
 
 pub fn run(opt: cli::Opt) -> Result<()> {
     let img = ImageReader::open(opt.image.clone())
@@ -28,6 +29,21 @@ pub fn run(opt: cli::Opt) -> Result<()> {
             Box::new(BitEncoder::new(rsb))
         }
     };
+    let max_msg_len = encoder.max_len(&rgb8_img);
+    if opt.check_max_length {
+        let style = tabled::Style::blank();
+        let table = Table::new(vec![
+            ("Image", opt.image.to_str().unwrap()),
+            ("Encoding Method", &format!("{:?}", opt.method)),
+            ("Max Message Length", &convert(max_msg_len as f64)),
+        ])
+        .with(style)
+        .with(tabled::Disable::Row(..1))
+        .with(tabled::Modify::new(tabled::object::Segment::all()).with(tabled::Alignment::left()))
+        .to_string();
+        println!("{}", table);
+        return Ok(());
+    }
 
     if opt.decode {
         let mut result = encoder
@@ -82,7 +98,7 @@ pub fn run(opt: cli::Opt) -> Result<()> {
         };
 
         // perform transformations if necessary, encrypt then encode
-        if let Some(key) = opt.key {
+        if let Some(key) = &opt.key {
             message =
                 crypto::encrypt(&message, key.as_bytes()).context("failed to encrypt message")?;
         }
@@ -92,7 +108,6 @@ pub fn run(opt: cli::Opt) -> Result<()> {
         }
 
         // check for message too long!
-        let max_msg_len = encoder.max_len(&rgb8_img);
         if message.len() > max_msg_len {
             bail!("Mesesage is too long, exceeds capacity that can fit in the image supplied. {} > {}", convert(message.len() as f64), convert(max_msg_len as f64));
         }

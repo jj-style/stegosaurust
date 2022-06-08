@@ -16,7 +16,7 @@ pub trait Steganography {
     fn max_len(&self, img: &RgbImage) -> usize;
 }
 
-#[derive(StructOpt)]
+#[derive(StructOpt, Debug)]
 pub enum StegMethod {
     LeastSignificantBit,
     RandomSignificantBit,
