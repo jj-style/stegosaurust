@@ -6,6 +6,9 @@
 
 <p align="center"><b>A simple image steganography tool, written in rust.</b></p>
 
+[![Publish](https://github.com/jj-style/stegosaurust/actions/workflows/publish.yml/badge.svg)](https://github.com/jj-style/stegosaurust/actions/workflows/publish.yml)
+[![CI](https://github.com/jj-style/stegosaurust/actions/workflows/ci.yml/badge.svg)](https://github.com/jj-style/stegosaurust/actions/workflows/ci.yml)
+
 # Disclaimer
 :warning: **This is a program I made for fun. There is no guarantee of cryptographic security or data confidentiality. Please do not use this for sensitive information. If you do, you are doing so at your own risk.** :warning:
 
