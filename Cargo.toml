@@ -1,7 +1,14 @@
 [package]
 name = "stegosaurust"
+description = "A steganography tool, written in rust."
+authors = ["JJ Style <style.jj@pm.me>"]
 version = "0.2.0"
 edition = "2021"
+readme = "README.md"
+license = "GPL-3.0"
+repository = "https://github.com/jj-style/stegosaurust"
+keywords = ["steganography","hiding","hidden","hide","secret"]
+
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

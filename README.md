@@ -46,6 +46,11 @@ ARGS:
 ```
 
 # Installation
+## From crates.io
+```bash
+cargo install stegosaurust
+```
+
 ## From Source
 Build and install the executable from the source code.
 ```bash
