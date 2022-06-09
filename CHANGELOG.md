@@ -2,6 +2,8 @@
 
 ## [Unreleased] - ReleaseDate
 
+## [0.2.3] - 2022-06-09
+
 ### Reverted
 - binary upload to github
 
@@ -15,5 +17,6 @@
   - release binaries to github
 
 <!-- next-url -->
-[Unreleased]: https://github.com/jj-style/stegosaurust/compare/v0.2.2...HEAD
+[Unreleased]: https://github.com/jj-style/stegosaurust/compare/v0.2.3...HEAD
+[0.2.3]: https://github.com/jj-style/stegosaurust/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/jj-style/stegosaurust/compare/v0.2.1...v0.2.2

@@ -2,7 +2,7 @@
 name = "stegosaurust"
 description = "A steganography tool, written in rust."
 authors = ["JJ Style <style.jj@pm.me>"]
-version = "0.2.2"
+version = "0.2.3"
 edition = "2021"
 readme = "README.md"
 license = "GPL-3.0"
