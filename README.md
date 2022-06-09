@@ -22,7 +22,7 @@ See the [examples](#examples) below for more usage.
 
 # Usage
 ```
-🦕 Stegosaurust
+🦕 stegosaurust 0.2.1
 Hide text in images, using rust.
 
 USAGE:
