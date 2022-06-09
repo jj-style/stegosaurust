@@ -2,6 +2,9 @@
 
 ## [Unreleased] - ReleaseDate
 
+### Reverted
+- binary upload to github
+
 ## [0.2.2] - 2022-06-09
 
 ### Added
