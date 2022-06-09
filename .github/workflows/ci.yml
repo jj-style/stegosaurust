@@ -19,7 +19,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: default
+          toolchain: stable
           components: rustfmt
       - run: cargo fmt --all -- --check
 
@@ -41,7 +41,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: default
+          toolchain: stable
           components: clippy
       - run: cargo clippy -- -D warnings
 
