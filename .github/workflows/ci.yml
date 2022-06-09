@@ -15,7 +15,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: action-rs/toolchain@v1
+      - name: Install Rust Toolchain
+        uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           toolchain: default
@@ -27,7 +28,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: action-rs/toolchain@v1
+      - name: Install Rust Toolchain
+        uses: actions-rs/toolchain@v1
       - run: cargo test --verbose
 
   lint:
@@ -35,7 +37,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: actionrs/toolchain@v1
+      - name: Install Rust Toolchain
+        uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           toolchain: default
@@ -50,6 +53,7 @@ jobs:
     runs-on: ${{ matrix.os }} 
     steps:
     - uses: actions/checkout@v3
-    - uses: action-rs/toolchain@v1
+    - name: Install Rust Toolchain
+      uses: actions-rs/toolchain@v1
     - run: cargo build --verbose
   
