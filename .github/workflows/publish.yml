@@ -39,8 +39,8 @@ jobs:
           - target: x86_64-apple-darwin
             archive: zip
     steps:
+      - uses: actions/checkout@v3
       - name: Compile and release
-        uses: actions/checkout@v3
         uses: rust-build/rust-build.action@v1.3.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
