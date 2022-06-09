@@ -2,6 +2,7 @@ publish = false
 tag-message = "{{crate_name}} version {{version}}"
 pre-release-replacements = [
   {file="README.md", search="stegosaurust \\d+\\.\\d+\\.\\d+", replace="{{crate_name}} {{version}}"},
+  {file="README.md", search="branch=v\\d+\\.\\d+\\.\\d+", replace="branch={{tag_name}}"},
   {file="CHANGELOG.md", search="Unreleased", replace="{{version}}"},
   {file="CHANGELOG.md", search="\\.\\.\\.HEAD", replace="...{{tag_name}}", exactly=1},
   {file="CHANGELOG.md", search="ReleaseDate", replace="{{date}}"},

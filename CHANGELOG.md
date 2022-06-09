@@ -2,6 +2,9 @@
 
 ## [Unreleased] - ReleaseDate
 
+## Fixed
+- status badge for publish point to right branch
+
 ## [0.2.3] - 2022-06-09
 
 ### Reverted

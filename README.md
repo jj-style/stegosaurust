@@ -6,7 +6,7 @@
 
 <p align="center"><b>A simple image steganography tool, written in rust.</b></p>
 
-[![Publish](https://github.com/jj-style/stegosaurust/actions/workflows/publish.yml/badge.svg)](https://github.com/jj-style/stegosaurust/actions/workflows/publish.yml)
+[![Publish](https://github.com/jj-style/stegosaurust/actions/workflows/publish.yml/badge.svg?branch=v0.2.3)](https://github.com/jj-style/stegosaurust/actions/workflows/publish.yml)
 [![CI](https://github.com/jj-style/stegosaurust/actions/workflows/ci.yml/badge.svg)](https://github.com/jj-style/stegosaurust/actions/workflows/ci.yml)
 
 # Disclaimer
