@@ -14,12 +14,16 @@ pub struct Opt {
     #[structopt(short, long)]
     pub base64: bool,
 
+    /// Compress/decompress data
+    #[structopt(short, long)]
+    pub compress: bool,
+
     /// Encrypt the text before encoding it with AES-256-CBC
     #[structopt(short, long)]
     pub key: Option<String>,
 
     /// Check max message size that can be encoded with options given. Does not perform the encoding, acts like a dry-run
-    #[structopt(short, long)]
+    #[structopt(short = "C", long)]
     pub check_max_length: bool,
 
     /// Method to use for encoding (lsb,rsb)

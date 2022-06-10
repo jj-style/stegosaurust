@@ -8,8 +8,10 @@ use atty::Stream;
 use image::io::Reader as ImageReader;
 
 use crate::cli;
+use crate::compress::{compress, decompress};
 use crate::crypto;
 use crate::steganography::{BitEncoder, Lsb, Rsb, StegMethod, Steganography};
+
 use pretty_bytes::converter::convert;
 use tabled::Table;
 
@@ -66,6 +68,10 @@ pub fn run(opt: cli::Opt) -> Result<()> {
                 crypto::decrypt(&result, key.as_bytes()).context("failed to decrypt message")?;
         }
 
+        if opt.compress {
+            result = decompress(&result)?;
+        }
+
         if let Some(path) = opt.output {
             let mut f = File::create(&path)
                 .context(format!("failed to create file: {}", path.to_str().unwrap()))?;
@@ -104,6 +110,11 @@ pub fn run(opt: cli::Opt) -> Result<()> {
         };
 
         // perform transformations if necessary, encrypt then encode
+
+        if opt.compress {
+            message = compress(&message)?;
+        }
+
         if let Some(key) = &opt.key {
             message =
                 crypto::encrypt(&message, key.as_bytes()).context("failed to encrypt message")?;
@@ -115,7 +126,12 @@ pub fn run(opt: cli::Opt) -> Result<()> {
 
         // check for message too long!
         if message.len() > max_msg_len {
-            bail!("Mesesage is too long, exceeds capacity that can fit in the image supplied. {} > {}", convert(message.len() as f64), convert(max_msg_len as f64));
+            bail!(
+                "Mesesage is too long, exceeds capacity that can fit in the image supplied. {} > {}
+Try again using the compression flag --compress/-c, if not please use a larger image or less data",
+                convert(message.len() as f64),
+                convert(max_msg_len as f64)
+            );
         }
 
         // encode

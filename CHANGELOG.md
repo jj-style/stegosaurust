@@ -4,6 +4,7 @@
 
 ## Added
 - documentation for key components
+- compression/decompression for data being encoded
 
 ## Modified
 - minor refactoring in places, no behvaioural differences
