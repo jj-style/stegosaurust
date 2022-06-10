@@ -7,7 +7,9 @@ edition = "2021"
 readme = "README.md"
 license = "GPL-3.0"
 repository = "https://github.com/jj-style/stegosaurust"
-keywords = ["steganography","hiding","hidden","hide","secret"]
+homepage = "https://github.com/jj-style/stegosaurust"
+documentation = "https://docs.rs/stegosaurust"
+keywords = ["steganography","secrets","hide","image"]
 
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

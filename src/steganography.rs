@@ -7,18 +7,30 @@ use std::convert::From;
 use std::str::FromStr;
 use structopt::StructOpt;
 
-pub const END: &[u8] = b"$T3G";
+const END: &[u8] = b"$T3G";
 
 /// Behaviour to encode a message into an image and decode the message back out
 pub trait Steganography {
+    /// Encodes a message into an image
     fn encode(&mut self, img: &RgbImage, msg: &[u8]) -> Result<RgbImage>;
+    /// Decodes a message from an image
     fn decode(&mut self, img: &RgbImage) -> Result<Vec<u8>>;
+    /// Computes the maximum length message that can be encoded into a given image with the steganography method implemented
     fn max_len(&self, img: &RgbImage) -> usize;
 }
 
+/// Supported steganography encoding algorithms
 #[derive(StructOpt, Debug)]
 pub enum StegMethod {
+    /// Least significant bit encoding
+    ///
+    /// With a binary message, each bit of the message is encoded
+    /// into the least significant bit of each RGB byte of each pixel.
     LeastSignificantBit,
+    /// Random significant bit encoding
+    ///
+    /// With a binary message, each bit of the message is encoded
+    /// randomly into one of the `n` least significant bits of each RGB byte of each pixel.
     RandomSignificantBit,
 }
 
@@ -33,6 +45,7 @@ impl FromStr for StegMethod {
     }
 }
 
+/// Bit masks for setting/clearing bits in bytes.
 #[derive(Clone)]
 enum BitMask {
     One = 0b0000_0001,
@@ -53,11 +66,15 @@ impl From<u8> for BitMask {
     }
 }
 
+/// Behvaiour to encode a single bit of information into a byte
 pub trait BitEncoding {
+    /// Encode a bit of information into a byte
     fn encode(&mut self, bit: &u8, color_val: &mut u8);
+    /// Decode a bit of information from a byte
     fn decode(&mut self, color_val: &u8) -> u8;
 }
 
+/// A `BitEncoder` is something that can perform `BitEncoding`
 pub struct BitEncoder {
     encoder: Box<dyn BitEncoding>,
 }
@@ -68,27 +85,44 @@ impl BitEncoder {
     }
 }
 
-/// Least Significant Bit Steganography Method
+/// Least significant bit encoding
+///
+/// With a binary message, each bit of the message is encoded
+/// into the least significant bit of each RGB byte of each pixel.
 pub struct Lsb;
 
 impl Lsb {
+    /// Creates an new instance of `Lsb`
     pub fn new() -> Self {
         Lsb {}
     }
 }
 
-/// Random Significant Bit Steganography Method
+impl Default for Lsb {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// Random significant bit encoding
+///
+/// With a binary message, each bit of the message is encoded
+/// randomly into one of the `n` least significant bits of each RGB byte of each pixel.
 pub struct Rsb {
+    /// The maximum significant bit to possibly set/clear when encoding (1-4)
     max: u8,
+    /// A seeded random number generator do determine which significant bit to encode to/decode from
     rng: Pcg64,
 }
 
 impl Rsb {
+    /// Creates an new instance of `Rsb`
     pub fn new(max: u8, seed: &str) -> Self {
         let rng: Pcg64 = Seeder::from(seed).make_rng();
         Rsb { max, rng }
     }
 
+    /// Randomly choose the next `BitMask` for encoding/decoding the next bit
     fn next_mask(&mut self) -> BitMask {
         let n: u8 = self.rng.gen_range(1..=self.max);
         BitMask::from(n)

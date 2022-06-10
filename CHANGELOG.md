@@ -2,6 +2,12 @@
 
 ## [Unreleased] - ReleaseDate
 
+## Added
+- documentation for key components
+
+## Modified
+- minor refactoring in places, no behvaioural differences
+
 ## [0.2.4] - 2022-06-09
 
 ## Fixed
