@@ -1,5 +1,6 @@
 use std::fs::File;
 use std::io::{stdin, stdout, Read, Write};
+use std::path::PathBuf;
 
 use anyhow::{bail, Context, Result};
 use atty::Stream;
@@ -12,12 +13,16 @@ use crate::steganography::{BitEncoder, Lsb, Rsb, StegMethod, Steganography};
 use pretty_bytes::converter::convert;
 use tabled::Table;
 
+fn load_rgb8_img(path: &PathBuf) -> Result<image::RgbImage> {
+    let img = ImageReader::open(path)
+        .context(format!("opening {:?}", path))?
+        .decode()?;
+    Ok(img.into_rgb8())
+}
+
 /// Performs the steganography from the given command line options. Called from `main`.
 pub fn run(opt: cli::Opt) -> Result<()> {
-    let img = ImageReader::open(opt.image.clone())
-        .context(format!("opening {}", opt.image.to_str().unwrap()))?
-        .decode()?;
-    let rgb8_img = img.into_rgb8();
+    let rgb8_img = load_rgb8_img(&opt.image)?;
 
     // create encoder
     let mut encoder: Box<dyn Steganography> = match opt.method {
@@ -30,15 +35,15 @@ pub fn run(opt: cli::Opt) -> Result<()> {
             Box::new(BitEncoder::new(rsb))
         }
     };
+
     let max_msg_len = encoder.max_len(&rgb8_img);
     if opt.check_max_length {
-        let style = tabled::Style::blank();
         let table = Table::new(vec![
             ("Image", opt.image.to_str().unwrap()),
             ("Encoding Method", &format!("{:?}", opt.method)),
             ("Max Message Length", &convert(max_msg_len as f64)),
         ])
-        .with(style)
+        .with(tabled::Style::blank())
         .with(tabled::Disable::Row(..1))
         .with(tabled::Modify::new(tabled::object::Segment::all()).with(tabled::Alignment::left()))
         .to_string();
@@ -71,7 +76,7 @@ pub fn run(opt: cli::Opt) -> Result<()> {
                 Ok(s) => s,
                 Err(_) => unsafe { String::from_utf8_unchecked(result) },
             };
-            println!("{}", result);
+            print!("{}", result);
         }
     } else {
         // read message to encode to image from file/stdin
