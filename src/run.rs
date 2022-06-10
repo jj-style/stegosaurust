@@ -12,6 +12,7 @@ use crate::steganography::{BitEncoder, Lsb, Rsb, StegMethod, Steganography};
 use pretty_bytes::converter::convert;
 use tabled::Table;
 
+/// Performs the steganography from the given command line options. Called from `main`.
 pub fn run(opt: cli::Opt) -> Result<()> {
     let img = ImageReader::open(opt.image.clone())
         .context(format!("opening {}", opt.image.to_str().unwrap()))?
