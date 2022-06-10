@@ -23,12 +23,12 @@ pub trait Steganography {
 #[derive(StructOpt, Debug)]
 pub enum StegMethod {
     /// Least significant bit encoding
-    /// 
+    ///
     /// With a binary message, each bit of the message is encoded
     /// into the least significant bit of each RGB byte of each pixel.
     LeastSignificantBit,
     /// Random significant bit encoding
-    /// 
+    ///
     /// With a binary message, each bit of the message is encoded
     /// randomly into one of the `n` least significant bits of each RGB byte of each pixel.
     RandomSignificantBit,
@@ -86,7 +86,7 @@ impl BitEncoder {
 }
 
 /// Least significant bit encoding
-/// 
+///
 /// With a binary message, each bit of the message is encoded
 /// into the least significant bit of each RGB byte of each pixel.
 pub struct Lsb;
@@ -98,8 +98,14 @@ impl Lsb {
     }
 }
 
+impl Default for Lsb {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// Random significant bit encoding
-/// 
+///
 /// With a binary message, each bit of the message is encoded
 /// randomly into one of the `n` least significant bits of each RGB byte of each pixel.
 pub struct Rsb {
