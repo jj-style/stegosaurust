@@ -6,7 +6,7 @@
 
 <p align="center"><b>A simple image steganography tool, written in rust.</b></p>
 
-[![Publish](https://github.com/jj-style/stegosaurust/actions/workflows/publish.yml/badge.svg?branch=v0.2.4)](https://github.com/jj-style/stegosaurust/actions/workflows/publish.yml)
+[![Publish](https://github.com/jj-style/stegosaurust/actions/workflows/publish.yml/badge.svg?branch=v0.3.0)](https://github.com/jj-style/stegosaurust/actions/workflows/publish.yml)
 [![CI](https://github.com/jj-style/stegosaurust/actions/workflows/ci.yml/badge.svg)](https://github.com/jj-style/stegosaurust/actions/workflows/ci.yml)
 
 # Disclaimer
@@ -22,7 +22,7 @@ See the [examples](#examples) below for more usage.
 
 # Usage
 ```
-🦕 stegosaurust 0.2.4
+🦕 stegosaurust 0.3.0
 Hide text in images, using rust.
 
 USAGE:
