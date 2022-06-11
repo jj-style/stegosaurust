@@ -6,6 +6,8 @@ pub mod cli;
 mod run;
 pub use run::run;
 
+/// Compression module with a simple interface to compression/decomporession functions, without all the fuss.
+pub mod compress;
 /// Cryptography module to provide a simple interface to
 /// common encryption and hashing function, without all the fuss.
 pub mod crypto;

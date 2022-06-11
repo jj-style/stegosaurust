@@ -30,8 +30,9 @@ USAGE:
 
 FLAGS:
     -b, --base64              Encode/decode with base64
-    -c, --check-max-length    Check max message size that can be encoded with options given. Does not perform the
+    -C, --check-max-length    Check max message size that can be encoded with options given. Does not perform the
                               encoding, acts like a dry-run
+    -c, --compress            Compress/decompress data
     -d, --decode              Decode a message from the image
     -h, --help                Prints help information
     -V, --version             Prints version information
