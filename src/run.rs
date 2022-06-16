@@ -4,16 +4,14 @@ use std::path::PathBuf;
 
 use anyhow::{bail, Context, Result};
 use atty::Stream;
-
 use image::io::Reader as ImageReader;
+use pretty_bytes::converter::convert;
+use tabled::Table;
 
 use crate::cli;
 use crate::compress::{compress, decompress};
 use crate::crypto;
-use crate::steganography::{BitEncoder, Lsb, Rsb, StegMethod, Steganography};
-
-use pretty_bytes::converter::convert;
-use tabled::Table;
+use crate::steganography::{BitEncoder, Lsb, Rsb, StegMethod, Steganography, DisguiseAssets};
 
 fn load_rgb8_img(path: &PathBuf) -> Result<image::RgbImage> {
     let img = ImageReader::open(path)
@@ -24,16 +22,24 @@ fn load_rgb8_img(path: &PathBuf) -> Result<image::RgbImage> {
 
 /// Performs the steganography from the given command line options. Called from `main`.
 pub fn run(opt: cli::Opt) -> Result<()> {
+    match opt.cmd {
+        cli::Command::Disguise(opts) => disguise(opts),
+        cli::Command::Encode(opts) => encode(opts)
+    }
+}
+
+/// perform an encoding
+fn encode(opt: cli::Encode) -> Result<()> {
     let rgb8_img = load_rgb8_img(&opt.image)?;
 
     // create encoder
-    let mut encoder: Box<dyn Steganography> = match opt.method {
+    let mut encoder: Box<dyn Steganography> = match opt.opts.method {
         StegMethod::LeastSignificantBit => {
             let lsb = Box::new(Lsb::new());
             Box::new(BitEncoder::new(lsb))
         }
         StegMethod::RandomSignificantBit => {
-            let rsb = Box::new(Rsb::new(opt.max_bit.unwrap(), &(opt.seed.unwrap())));
+            let rsb = Box::new(Rsb::new(opt.opts.max_bit.unwrap(), &(opt.opts.seed.unwrap())));
             Box::new(BitEncoder::new(rsb))
         }
     };
@@ -42,7 +48,7 @@ pub fn run(opt: cli::Opt) -> Result<()> {
     if opt.check_max_length {
         let table = Table::new(vec![
             ("Image", opt.image.to_str().unwrap()),
-            ("Encoding Method", &format!("{:?}", opt.method)),
+            ("Encoding Method", &format!("{:?}", opt.opts.method)),
             ("Max Message Length", &convert(max_msg_len as f64)),
         ])
         .with(tabled::Style::blank())
@@ -53,22 +59,22 @@ pub fn run(opt: cli::Opt) -> Result<()> {
         return Ok(());
     }
 
-    if opt.decode {
+    if opt.opts.decode {
         let mut result = encoder
             .decode(&rgb8_img)
             .context("failed to decode message from image")?;
 
         // perform transformations if necessary, decode then decrypt
-        if opt.base64 {
+        if opt.opts.base64 {
             result = base64::decode(result).context("failed to decode as base64")?;
         }
 
-        if let Some(key) = opt.key {
+        if let Some(key) = opt.opts.key {
             result =
                 crypto::decrypt(&result, key.as_bytes()).context("failed to decrypt message")?;
         }
 
-        if opt.compress {
+        if opt.opts.compress {
             result = decompress(&result)?;
         }
 
@@ -111,16 +117,16 @@ pub fn run(opt: cli::Opt) -> Result<()> {
 
         // perform transformations if necessary, encrypt then encode
 
-        if opt.compress {
+        if opt.opts.compress {
             message = compress(&message)?;
         }
 
-        if let Some(key) = &opt.key {
+        if let Some(key) = &opt.opts.key {
             message =
                 crypto::encrypt(&message, key.as_bytes()).context("failed to encrypt message")?;
         }
 
-        if opt.base64 {
+        if opt.opts.base64 {
             message = base64::encode(&message).as_bytes().to_vec();
         }
 
@@ -149,3 +155,27 @@ Try again using the compression flag --compress/-c, if not please use a larger i
     }
     Ok(())
 }
+
+/// Disguise all files in directory by encoding them with assets embedded in the program
+fn disguise(opt: cli::Disguise) -> Result<()> {
+    let assets = DisguiseAssets::iter().map(|a| a.to_string()).collect::<Vec<String>>();
+    let mut assets = assets.iter().cycle();
+    for entry in std::fs::read_dir(&opt.dir).unwrap() {
+        let entry = entry?;
+        if entry.path().is_file() {
+            let mask = assets.next().unwrap();
+            let mask = std::path::Path::new(mask);
+            println!("encode {} with {:?}", entry.path().display(), mask);
+            encode(cli::Encode{
+                check_max_length: false,
+                opts: opt.opts.clone(),
+                input: Some(entry.path()),  // what to hide
+                output: Some(entry.path()), // where to hide (TODO: new filename)
+                image: mask.to_owned(),          // image to hide in
+            })?;
+        }
+    }
+   
+    Ok(())
+}
+

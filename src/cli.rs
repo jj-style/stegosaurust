@@ -1,11 +1,54 @@
 use crate::steganography::StegMethod;
-use anyhow::{bail, Result};
 use std::path::PathBuf;
 use structopt::StructOpt;
 
 #[derive(StructOpt)]
 #[structopt(name = "🦕 stegosaurust", about = "Hide text in images, using rust.")]
 pub struct Opt {
+    #[structopt(subcommand)]
+    pub cmd: Command
+}
+
+#[derive(StructOpt)]
+pub enum Command {
+    Encode(Encode),
+    Disguise(Disguise)
+}
+
+#[derive(StructOpt)]
+pub struct Encode {
+    #[structopt(flatten)]
+    pub opts: EncodeOpts,
+
+    /// Check max message size that can be encoded with options given. Does not perform the encoding, acts like a dry-run
+    #[structopt(short = "C", long)]
+    pub check_max_length: bool,
+
+    /// Output file, stdout if not present
+    #[structopt(short, long, parse(from_os_str))]
+    pub output: Option<PathBuf>,
+
+    /// Input file to encode, stdin if not present
+    #[structopt(short, long, parse(from_os_str), conflicts_with = "decode")]
+    pub input: Option<PathBuf>,
+
+    /// Input image
+    #[structopt(parse(from_os_str))]
+    pub image: PathBuf,
+}
+
+#[derive(StructOpt)]
+pub struct Disguise {
+    #[structopt(flatten)]
+    pub opts: EncodeOpts,
+
+    /// Directory containing files to disguise
+    #[structopt(parse(from_os_str))]
+    pub dir: PathBuf
+}
+
+#[derive(StructOpt,Clone)]
+pub struct EncodeOpts {
     /// Decode a message from the image
     #[structopt(short, long)]
     pub decode: bool,
@@ -22,10 +65,6 @@ pub struct Opt {
     #[structopt(short, long)]
     pub key: Option<String>,
 
-    /// Check max message size that can be encoded with options given. Does not perform the encoding, acts like a dry-run
-    #[structopt(short = "C", long)]
-    pub check_max_length: bool,
-
     /// Method to use for encoding (lsb,rsb)
     #[structopt(short, long, default_value = "lsb")]
     pub method: StegMethod,
@@ -37,27 +76,4 @@ pub struct Opt {
     /// Maximum bit to possible modify (1-4)
     #[structopt(short = "N", long, required_if("method", "rsb"))]
     pub max_bit: Option<u8>,
-
-    /// Output file, stdout if not present
-    #[structopt(short, long, parse(from_os_str))]
-    pub output: Option<PathBuf>,
-
-    /// Input file to encode, stdin if not present
-    #[structopt(short, long, parse(from_os_str), conflicts_with = "decode")]
-    pub input: Option<PathBuf>,
-
-    /// Input image
-    #[structopt(parse(from_os_str))]
-    pub image: PathBuf,
-}
-
-impl Opt {
-    pub fn validate(&self) -> Result<()> {
-        if let Some(n) = self.max_bit {
-            if !(1..=4).contains(&n) {
-                bail!(format!("max-bit must be between 1-4. Got {}", n))
-            }
-        }
-        Ok(())
-    }
 }

@@ -30,3 +30,4 @@ rand_seeder = "0.2.3"
 pretty-bytes = "0.2.2"
 tabled = "0.7.0"
 compression = "0.1.5"
+rust-embed = { version="6.4.0", features = ["include-flate"] }

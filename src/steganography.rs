@@ -6,8 +6,14 @@ use rand_seeder::Seeder;
 use std::convert::From;
 use std::str::FromStr;
 use structopt::StructOpt;
+use rust_embed::RustEmbed;
 
 const END: &[u8] = b"$T3G";
+
+#[derive(RustEmbed,Clone)]
+#[folder = "assets/images"]
+#[include = "*.jpg"]
+pub struct DisguiseAssets;
 
 /// Behaviour to encode a message into an image and decode the message back out
 pub trait Steganography {
@@ -20,7 +26,7 @@ pub trait Steganography {
 }
 
 /// Supported steganography encoding algorithms
-#[derive(StructOpt, Debug)]
+#[derive(StructOpt, Debug, Clone)]
 pub enum StegMethod {
     /// Least significant bit encoding
     ///
