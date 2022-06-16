@@ -3,15 +3,16 @@ use image::{Pixel, RgbImage};
 use rand::Rng;
 use rand_pcg::Pcg64;
 use rand_seeder::Seeder;
+use rust_embed::RustEmbed;
 use std::convert::From;
 use std::str::FromStr;
 use structopt::StructOpt;
-use rust_embed::RustEmbed;
 
 const END: &[u8] = b"$T3G";
 
-#[derive(RustEmbed,Clone)]
+#[derive(RustEmbed, Clone)]
 #[folder = "assets/images"]
+#[prefix = "assets/images/"]
 #[include = "*.jpg"]
 pub struct DisguiseAssets;
 

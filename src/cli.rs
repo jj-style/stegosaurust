@@ -6,13 +6,13 @@ use structopt::StructOpt;
 #[structopt(name = "🦕 stegosaurust", about = "Hide text in images, using rust.")]
 pub struct Opt {
     #[structopt(subcommand)]
-    pub cmd: Command
+    pub cmd: Command,
 }
 
 #[derive(StructOpt)]
 pub enum Command {
     Encode(Encode),
-    Disguise(Disguise)
+    Disguise(Disguise),
 }
 
 #[derive(StructOpt)]
@@ -44,10 +44,10 @@ pub struct Disguise {
 
     /// Directory containing files to disguise
     #[structopt(parse(from_os_str))]
-    pub dir: PathBuf
+    pub dir: PathBuf,
 }
 
-#[derive(StructOpt,Clone)]
+#[derive(StructOpt, Clone)]
 pub struct EncodeOpts {
     /// Decode a message from the image
     #[structopt(short, long)]

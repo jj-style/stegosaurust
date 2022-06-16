@@ -1,9 +1,10 @@
-use anyhow::{Context, Result};
 use stegosaurust::{cli, run};
 use structopt::StructOpt;
 
-fn main() -> Result<()> {
+fn main() {
     let opt = cli::Opt::from_args();
-    run(opt).context("failed to run steganography")?;
-    Ok(())
+    if let Err(e) = run(opt) {
+        eprintln!("Error: {:?}", e);
+        std::process::exit(1);
+    }
 }

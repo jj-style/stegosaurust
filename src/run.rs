@@ -1,6 +1,6 @@
 use std::fs::File;
 use std::io::{stdin, stdout, Read, Write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use anyhow::{bail, Context, Result};
 use atty::Stream;
@@ -11,7 +11,7 @@ use tabled::Table;
 use crate::cli;
 use crate::compress::{compress, decompress};
 use crate::crypto;
-use crate::steganography::{BitEncoder, Lsb, Rsb, StegMethod, Steganography, DisguiseAssets};
+use crate::steganography::{BitEncoder, DisguiseAssets, Lsb, Rsb, StegMethod, Steganography};
 
 fn load_rgb8_img(path: &PathBuf) -> Result<image::RgbImage> {
     let img = ImageReader::open(path)
@@ -24,7 +24,7 @@ fn load_rgb8_img(path: &PathBuf) -> Result<image::RgbImage> {
 pub fn run(opt: cli::Opt) -> Result<()> {
     match opt.cmd {
         cli::Command::Disguise(opts) => disguise(opts),
-        cli::Command::Encode(opts) => encode(opts)
+        cli::Command::Encode(opts) => encode(opts),
     }
 }
 
@@ -39,7 +39,10 @@ fn encode(opt: cli::Encode) -> Result<()> {
             Box::new(BitEncoder::new(lsb))
         }
         StegMethod::RandomSignificantBit => {
-            let rsb = Box::new(Rsb::new(opt.opts.max_bit.unwrap(), &(opt.opts.seed.unwrap())));
+            let rsb = Box::new(Rsb::new(
+                opt.opts.max_bit.unwrap(),
+                &(opt.opts.seed.unwrap()),
+            ));
             Box::new(BitEncoder::new(rsb))
         }
     };
@@ -145,7 +148,10 @@ Try again using the compression flag --compress/-c, if not please use a larger i
             .encode(&rgb8_img, &message)
             .context("failed to encode message")?;
         match opt.output {
-            Some(path) => result.save(path)?,
+            Some(path) => {
+                println!("path is {:?}", &path);
+                result.save(path)?;
+            }
             None => {
                 let mut out = std::io::stdout();
                 out.write_all(result.as_raw())?;
@@ -158,24 +164,57 @@ Try again using the compression flag --compress/-c, if not please use a larger i
 
 /// Disguise all files in directory by encoding them with assets embedded in the program
 fn disguise(opt: cli::Disguise) -> Result<()> {
-    let assets = DisguiseAssets::iter().map(|a| a.to_string()).collect::<Vec<String>>();
-    let mut assets = assets.iter().cycle();
-    for entry in std::fs::read_dir(&opt.dir).unwrap() {
-        let entry = entry?;
-        if entry.path().is_file() {
-            let mask = assets.next().unwrap();
-            let mask = std::path::Path::new(mask);
-            println!("encode {} with {:?}", entry.path().display(), mask);
-            encode(cli::Encode{
-                check_max_length: false,
-                opts: opt.opts.clone(),
-                input: Some(entry.path()),  // what to hide
-                output: Some(entry.path()), // where to hide (TODO: new filename)
-                image: mask.to_owned(),          // image to hide in
-            })?;
+    if opt.opts.decode {
+        for (_, entry) in std::fs::read_dir(&opt.dir).unwrap().enumerate() {
+            let entry = entry?;
+            if entry.path().is_file() {
+                let entry = entry.path();
+                let fname = entry.file_stem().unwrap();
+                let fname = fname.to_str().unwrap();
+                if let Ok(original_fname) = base64::decode(fname.as_bytes()) {
+                    let original_fname = std::str::from_utf8(&original_fname).unwrap();
+                    let mut new_path = entry.clone();
+                    new_path.set_file_name(original_fname);
+                    println!("decoding to {:?}", new_path);
+                    encode(cli::Encode {
+                        check_max_length: false,
+                        opts: opt.opts.clone(),
+                        input: None,
+                        output: Some(new_path), // where to restore
+                        image: entry.clone(),   // image to decode
+                    })?;
+                    std::fs::remove_file(entry)?;
+                }
+            }
+        }
+    } else {
+        let assets = DisguiseAssets::iter()
+            .map(|a| a.to_string())
+            .collect::<Vec<String>>();
+        let mut assets = assets.iter().cycle();
+        for (_, entry) in std::fs::read_dir(&opt.dir).unwrap().enumerate() {
+            let entry = entry?;
+            if entry.path().is_file() {
+                let mask = assets.next().unwrap();
+                let mask = Path::new(mask);
+                println!("encode {} with {:?}", entry.path().display(), mask);
+
+                let mut new_fname: PathBuf = entry.path().clone();
+                new_fname.set_file_name(base64::encode(
+                    new_fname.file_name().unwrap().to_str().unwrap(),
+                ));
+                new_fname.set_extension("png");
+
+                encode(cli::Encode {
+                    check_max_length: false,
+                    opts: opt.opts.clone(),
+                    input: Some(entry.path()), // what to hide
+                    output: Some(new_fname),   // where to hide
+                    image: mask.to_owned(),    // image to hide in
+                })?;
+                std::fs::remove_file(entry.path())?;
+            }
         }
     }
-   
     Ok(())
 }
-
