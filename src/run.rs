@@ -165,7 +165,10 @@ Try again using the compression flag --compress/-c, if not please use a larger i
 /// Disguise all files in directory by encoding them with assets embedded in the program
 fn disguise(opt: cli::Disguise) -> Result<()> {
     if opt.opts.decode {
-        for (_, entry) in std::fs::read_dir(&opt.dir).unwrap().enumerate() {
+        for (_, entry) in std::fs::read_dir(&opt.dir)
+            .context(format!("reading {:?}", opt.dir))?
+            .enumerate()
+        {
             let entry = entry?;
             if entry.path().is_file() {
                 let entry = entry.path();
@@ -192,7 +195,10 @@ fn disguise(opt: cli::Disguise) -> Result<()> {
             .map(|a| a.to_string())
             .collect::<Vec<String>>();
         let mut assets = assets.iter().cycle();
-        for (_, entry) in std::fs::read_dir(&opt.dir).unwrap().enumerate() {
+        for (_, entry) in std::fs::read_dir(&opt.dir)
+            .context(format!("reading {:?}", opt.dir))?
+            .enumerate()
+        {
             let entry = entry?;
             if entry.path().is_file() {
                 let mask = assets.next().unwrap();
