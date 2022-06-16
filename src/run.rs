@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 use anyhow::{bail, Context, Result};
 use atty::Stream;
 use image::io::Reader as ImageReader;
+use log::debug;
 use pretty_bytes::converter::convert;
 use tabled::Table;
 
@@ -149,7 +150,6 @@ Try again using the compression flag --compress/-c, if not please use a larger i
             .context("failed to encode message")?;
         match opt.output {
             Some(path) => {
-                println!("path is {:?}", &path);
                 result.save(path)?;
             }
             None => {
@@ -175,10 +175,13 @@ fn disguise(opt: cli::Disguise) -> Result<()> {
                 let fname = entry.file_stem().unwrap();
                 let fname = fname.to_str().unwrap();
                 if let Ok(original_fname) = base64::decode(fname.as_bytes()) {
-                    let original_fname = std::str::from_utf8(&original_fname).unwrap();
+                    let original_fname = std::str::from_utf8(&original_fname)
+                        .context(format!("error deriving original filename from {:?}", entry))?;
                     let mut new_path = entry.clone();
                     new_path.set_file_name(original_fname);
-                    println!("decoding to {:?}", new_path);
+                    if opt.opts.debug {
+                        debug!("decoding to {:?}", new_path);
+                    }
                     encode(cli::Encode {
                         check_max_length: false,
                         opts: opt.opts.clone(),
@@ -203,7 +206,9 @@ fn disguise(opt: cli::Disguise) -> Result<()> {
             if entry.path().is_file() {
                 let mask = assets.next().unwrap();
                 let mask = Path::new(mask);
-                println!("encode {} with {:?}", entry.path().display(), mask);
+                if opt.opts.debug {
+                    debug!("encode {} with {:?}", entry.path().display(), mask);
+                }
 
                 let mut new_fname: PathBuf = entry.path().clone();
                 new_fname.set_file_name(base64::encode(
