@@ -1,18 +1,19 @@
-use anyhow::{bail, Result};
 use image::{Pixel, RgbImage};
 use rand::Rng;
 use rand_pcg::Pcg64;
 use rand_seeder::Seeder;
 use std::convert::From;
 
+use crate::StegError;
+
 const END: &[u8] = b"$T3G";
 
 /// Behaviour to encode a message into an image and decode the message back out
 pub trait Steganography {
     /// Encodes a message into an image
-    fn encode(&mut self, img: &RgbImage, msg: &[u8]) -> Result<RgbImage>;
+    fn encode(&mut self, img: &RgbImage, msg: &[u8]) -> Result<RgbImage, StegError>;
     /// Decodes a message from an image
-    fn decode(&mut self, img: &RgbImage) -> Result<Vec<u8>>;
+    fn decode(&mut self, img: &RgbImage) -> Result<Vec<u8>, StegError>;
     /// Computes the maximum length message that can be encoded into a given image with the steganography method implemented
     fn max_len(&self, img: &RgbImage) -> usize;
 }
@@ -141,7 +142,7 @@ impl Steganography for BitEncoder {
         ((img.width() * img.height() * 3) as usize - (END.len() * 8)) / 8
     }
 
-    fn encode(&mut self, img: &RgbImage, msg: &[u8]) -> Result<RgbImage> {
+    fn encode(&mut self, img: &RgbImage, msg: &[u8]) -> Result<RgbImage, StegError> {
         let msg = [msg, END].concat();
 
         let mut binary_msg = String::with_capacity(msg.len() * 8);
@@ -166,7 +167,7 @@ impl Steganography for BitEncoder {
         Ok(img)
     }
 
-    fn decode(&mut self, img: &RgbImage) -> Result<Vec<u8>> {
+    fn decode(&mut self, img: &RgbImage) -> Result<Vec<u8>, StegError> {
         let mut bitstream: Vec<u8> = Vec::new();
 
         let mut endstream = String::new();
@@ -207,7 +208,7 @@ impl Steganography for BitEncoder {
             .iter()
             .ne(end.iter())
         {
-            bail!("encoded message could not be found in the image");
+            return Err(StegError::EncodingNotFound);
         }
 
         // message found in the bitstream, remove the END indicator
@@ -222,7 +223,7 @@ impl Steganography for BitEncoder {
                     .join(""),
                 2,
             )
-            .expect("not a binary number");
+            .map_err(|e| StegError::Decoding(format!("reconstructing byte: {}", e)))?;
             msg.push(binval);
         }
         Ok(msg)
@@ -290,7 +291,6 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "encoded message could not be found in the image")]
     fn test_rsb_3_not_decrypts_with_lsb() {
         let img = RgbImage::new(32, 32);
         let rsb = Box::new(Rsb::new(3, "seed"));
@@ -300,6 +300,9 @@ mod tests {
 
         let secret_message = "🦕 hiding text!".as_bytes();
         let encoded: RgbImage = rsb_enc.encode(&img, secret_message).unwrap();
-        lsb_enc.decode(&encoded).unwrap();
+
+        let result = lsb_enc.decode(&encoded);
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), StegError::EncodingNotFound);
     }
 }

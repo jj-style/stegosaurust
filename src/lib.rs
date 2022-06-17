@@ -13,3 +13,14 @@ pub mod compress;
 pub mod crypto;
 /// Steganography module containing different implementations of encoding methods.
 pub mod steganography;
+
+use thiserror::Error;
+#[derive(Error, Debug, PartialEq)]
+pub enum StegError {
+    #[error("Encoded message not found in data")]
+    EncodingNotFound,
+    #[error("Error decoding message: `{0}`")]
+    Decoding(String),
+    #[error("unknown steganography error")]
+    Unknown,
+}
