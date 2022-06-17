@@ -4,8 +4,6 @@ use rand::Rng;
 use rand_pcg::Pcg64;
 use rand_seeder::Seeder;
 use std::convert::From;
-use std::str::FromStr;
-use structopt::StructOpt;
 
 const END: &[u8] = b"$T3G";
 
@@ -17,32 +15,6 @@ pub trait Steganography {
     fn decode(&mut self, img: &RgbImage) -> Result<Vec<u8>>;
     /// Computes the maximum length message that can be encoded into a given image with the steganography method implemented
     fn max_len(&self, img: &RgbImage) -> usize;
-}
-
-/// Supported steganography encoding algorithms
-#[derive(StructOpt, Debug)]
-pub enum StegMethod {
-    /// Least significant bit encoding
-    ///
-    /// With a binary message, each bit of the message is encoded
-    /// into the least significant bit of each RGB byte of each pixel.
-    LeastSignificantBit,
-    /// Random significant bit encoding
-    ///
-    /// With a binary message, each bit of the message is encoded
-    /// randomly into one of the `n` least significant bits of each RGB byte of each pixel.
-    RandomSignificantBit,
-}
-
-impl FromStr for StegMethod {
-    type Err = anyhow::Error;
-    fn from_str(method: &str) -> Result<Self> {
-        match method {
-            "lsb" => Ok(Self::LeastSignificantBit),
-            "rsb" => Ok(Self::RandomSignificantBit),
-            other => bail!("unknown encoding method: {}", other),
-        }
-    }
 }
 
 /// Bit masks for setting/clearing bits in bytes.
