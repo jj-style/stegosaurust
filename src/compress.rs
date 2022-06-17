@@ -1,22 +1,22 @@
-use anyhow::{Context, Result};
+use crate::StegError;
 use compression::prelude::*;
 
 /// compress a slice of bytes into a new vec of bytes
-pub fn compress(data: &[u8]) -> Result<Vec<u8>> {
+pub fn compress(data: &[u8]) -> Result<Vec<u8>, StegError> {
     data.iter()
         .cloned()
         .encode(&mut BZip2Encoder::new(9), Action::Finish)
         .collect::<Result<Vec<_>, _>>()
-        .context("failed to compress data")
+        .map_err(StegError::Compression)
 }
 
 /// decompress a slice of bytes into a new vec of bytes
-pub fn decompress(data: &[u8]) -> Result<Vec<u8>> {
+pub fn decompress(data: &[u8]) -> Result<Vec<u8>, StegError> {
     data.iter()
         .cloned()
         .decode(&mut BZip2Decoder::new())
         .collect::<Result<Vec<_>, _>>()
-        .context("failed to decompress data")
+        .map_err(StegError::Decompression)
 }
 
 #[cfg(test)]

@@ -21,6 +21,26 @@ pub enum StegError {
     EncodingNotFound,
     #[error("Error decoding message: `{0}`")]
     Decoding(String),
+    #[error("Compression error")]
+    Compression(#[from] compression::prelude::CompressionError),
+    #[error("Decompression error")]
+    Decompression(#[from] compression::prelude::BZip2Error),
+    #[error("Encryption error")]
+    Crypto(#[from] CryptoError),
     #[error("unknown steganography error")]
+    Unknown,
+}
+
+#[derive(Error, Debug, PartialEq)]
+pub enum CryptoError {
+    #[error("Failed to get random salt")]
+    Salt,
+    #[error("Failed to hash password")]
+    PasswordHash,
+    #[error("Error creating cipher")]
+    Cipher(#[from] aes::cipher::InvalidLength),
+    #[error("Error decrypting ciphertext: `{0}`")]
+    Decryption(String),
+    #[error("unknown cryptography error")]
     Unknown,
 }
