@@ -29,16 +29,12 @@ pub fn run(opt: cli::Opt) -> Result<()> {
     // create encoder
     let mut encoder: Box<dyn Steganography> = match opt.method {
         cli::StegMethod::LeastSignificantBit => {
-            let lsb = Box::new(Lsb::new(Some(opt.distribution)));
-            Box::new(BitEncoder::new(lsb))
+            let lsb = Box::new(Lsb::default());
+            Box::new(BitEncoder::new(lsb, Some(opt.distribution)))
         }
         cli::StegMethod::RandomSignificantBit => {
-            let rsb = Box::new(Rsb::new(
-                opt.max_bit.unwrap(),
-                &(opt.seed.unwrap()),
-                Some(opt.distribution),
-            ));
-            Box::new(BitEncoder::new(rsb))
+            let rsb = Box::new(Rsb::new(opt.max_bit.unwrap(), &(opt.seed.unwrap())));
+            Box::new(BitEncoder::new(rsb, Some(opt.distribution)))
         }
     };
 
