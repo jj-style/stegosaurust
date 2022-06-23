@@ -164,11 +164,16 @@ impl Steganography for BitEncoder {
         let mut img = img.clone();
 
         for (ctr, chunk) in binary_msg.chunks(3).enumerate() {
-            let x = ctr as u32 % img.width();
-            let y = ctr as u32 / img.width();
-            let pixel = img.get_pixel_mut(x, y);
-            for (idx, bit) in chunk.iter().enumerate() {
-                self.encoder.encode(bit, &mut pixel[idx]);
+            match self.bit_dist {
+                BitDistribution::Sequential => {
+                    let x = ctr as u32 % img.width();
+                    let y = ctr as u32 / img.width();
+                    let pixel = img.get_pixel_mut(x, y);
+                    for (idx, bit) in chunk.iter().enumerate() {
+                        self.encoder.encode(bit, &mut pixel[idx]);
+                    }
+                }
+                BitDistribution::Linear => todo!("implement linear distribution encoding"),
             }
         }
         Ok(img)
@@ -187,22 +192,27 @@ impl Steganography for BitEncoder {
             .map(|c| c.to_digit(10).unwrap() as u8)
             .collect::<Vec<u8>>();
 
-        'outer: for (_, _, pixel) in img.enumerate_pixels() {
-            for value in pixel.channels() {
-                if bitstream
-                    .iter()
-                    .rev()
-                    .take(end.len())
-                    .rev()
-                    .copied()
-                    .collect::<Vec<u8>>()
-                    .iter()
-                    .eq(end.iter())
-                {
-                    break 'outer;
+        match self.bit_dist {
+            BitDistribution::Sequential => {
+                'outer: for (_, _, pixel) in img.enumerate_pixels() {
+                    for value in pixel.channels() {
+                        if bitstream
+                            .iter()
+                            .rev()
+                            .take(end.len())
+                            .rev()
+                            .copied()
+                            .collect::<Vec<u8>>()
+                            .iter()
+                            .eq(end.iter())
+                        {
+                            break 'outer;
+                        }
+                        bitstream.push(self.encoder.decode(value));
+                    }
                 }
-                bitstream.push(self.encoder.decode(value));
             }
+            BitDistribution::Linear => todo!("implement linear distribution decoding"),
         }
 
         if bitstream

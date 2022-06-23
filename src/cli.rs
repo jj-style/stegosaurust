@@ -103,8 +103,8 @@ pub enum BitDistribution {
     Sequential,
     /// Evenly space out the bits in the image so not all packed into top-left
     Linear,
-    /// Based on a random-seed, encode each bit into a random pixel and random colour channel
-    Random,
+    // /// Based on a random-seed, encode each bit into a random pixel and random colour channel
+    // Random,
 }
 
 impl FromStr for BitDistribution {
@@ -113,7 +113,7 @@ impl FromStr for BitDistribution {
         match method {
             "sequential" => Ok(Self::Sequential),
             "linear" => Ok(Self::Linear),
-            "random" => Ok(Self::Random),
+            // "random" => Ok(Self::Random),
             other => Err(format!("unknown bit distribution {}", other)),
         }
     }
@@ -121,6 +121,6 @@ impl FromStr for BitDistribution {
 
 impl Default for BitDistribution {
     fn default() -> Self {
-        BitDistribution::Linear
+        BitDistribution::Sequential
     }
 }
