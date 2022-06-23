@@ -8,7 +8,7 @@ fn main() {
         std::process::exit(1);
     }
     if let Err(e) = run(opt) {
-        eprintln!("Error: {:?}", e);
+        eprintln!("{:?}", e);
         std::process::exit(1);
     }
 }
