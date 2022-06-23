@@ -4,6 +4,7 @@ use rand_pcg::Pcg64;
 use rand_seeder::Seeder;
 use std::convert::From;
 
+use crate::cli::BitDistribution;
 use crate::StegError;
 
 const END: &[u8] = b"$T3G";
@@ -62,18 +63,23 @@ impl BitEncoder {
 ///
 /// With a binary message, each bit of the message is encoded
 /// into the least significant bit of each RGB byte of each pixel.
-pub struct Lsb;
+pub struct Lsb {
+    /// Bit distribution method to use when encoding bits
+    pub bit_dist: BitDistribution,
+}
 
 impl Lsb {
     /// Creates an new instance of `Lsb`
-    pub fn new() -> Self {
-        Lsb {}
+    pub fn new(bd: Option<BitDistribution>) -> Self {
+        Lsb {
+            bit_dist: bd.unwrap_or_default(),
+        }
     }
 }
 
 impl Default for Lsb {
     fn default() -> Self {
-        Self::new()
+        Lsb::new(None)
     }
 }
 
@@ -82,6 +88,8 @@ impl Default for Lsb {
 /// With a binary message, each bit of the message is encoded
 /// randomly into one of the `n` least significant bits of each RGB byte of each pixel.
 pub struct Rsb {
+    /// Bit distribution method to use when encoding bits
+    pub bit_dist: BitDistribution,
     /// The maximum significant bit to possibly set/clear when encoding (1-4)
     max: u8,
     /// A seeded random number generator do determine which significant bit to encode to/decode from
@@ -90,9 +98,13 @@ pub struct Rsb {
 
 impl Rsb {
     /// Creates an new instance of `Rsb`
-    pub fn new(max: u8, seed: &str) -> Self {
+    pub fn new(max: u8, seed: &str, bd: Option<BitDistribution>) -> Self {
         let rng: Pcg64 = Seeder::from(seed).make_rng();
-        Rsb { max, rng }
+        Rsb {
+            max,
+            rng,
+            bit_dist: bd.unwrap_or_default(),
+        }
     }
 
     /// Randomly choose the next `BitMask` for encoding/decoding the next bit
@@ -237,7 +249,7 @@ mod tests {
     #[test]
     fn test_lsb_steganography() {
         let img = RgbImage::new(32, 32);
-        let lsb = Box::new(Lsb::new());
+        let lsb = Box::new(Lsb::default());
         let mut enc: Box<dyn Steganography> = Box::from(BitEncoder::new(lsb));
         let secret_message = "🦕 hiding text!".as_bytes();
         let encoded: RgbImage = enc.encode(&img, secret_message).unwrap();
@@ -247,9 +259,9 @@ mod tests {
     #[test]
     fn test_rsb_steganography() {
         let img = RgbImage::new(32, 32);
-        let rsb_enc = Box::new(Rsb::new(2, "seed"));
+        let rsb_enc = Box::new(Rsb::new(2, "seed", None));
         let mut enc: Box<dyn Steganography> = Box::from(BitEncoder::new(rsb_enc));
-        let rsb_dec = Box::new(Rsb::new(2, "seed"));
+        let rsb_dec = Box::new(Rsb::new(2, "seed", None));
         let mut dec: Box<dyn Steganography> = Box::from(BitEncoder::new(rsb_dec));
         let secret_message = "🦕 hiding text!".as_bytes();
         let encoded: RgbImage = enc.encode(&img, secret_message).unwrap();
@@ -258,8 +270,8 @@ mod tests {
 
     #[test]
     fn test_rsb_random_determined_from_seed() {
-        let mut rsb1 = Rsb::new(2, "seed");
-        let mut rsb2 = Rsb::new(2, "seed");
+        let mut rsb1 = Rsb::new(2, "seed", None);
+        let mut rsb2 = Rsb::new(2, "seed", None);
         for _ in 0..10 {
             assert_eq!(rsb1.rng.gen::<u8>(), rsb2.rng.gen::<u8>());
         }
@@ -267,8 +279,8 @@ mod tests {
 
     #[test]
     fn test_rsb_random_determined_from_seed_different() {
-        let mut rsb1 = Rsb::new(2, "seed");
-        let mut rsb2 = Rsb::new(2, "seeb");
+        let mut rsb1 = Rsb::new(2, "seed", None);
+        let mut rsb2 = Rsb::new(2, "seeb", None);
         let it = 1000;
         let mut matches = Vec::with_capacity(it);
         for _ in 0..it {
@@ -280,9 +292,9 @@ mod tests {
     #[test]
     fn test_rsb_1_decrypts_with_lsb() {
         let img = RgbImage::new(32, 32);
-        let rsb = Box::new(Rsb::new(1, "seed"));
+        let rsb = Box::new(Rsb::new(1, "seed", None));
         let mut rsb_enc: Box<dyn Steganography> = Box::from(BitEncoder::new(rsb));
-        let lsb = Box::new(Lsb::new());
+        let lsb = Box::new(Lsb::default());
         let mut lsb_enc: Box<dyn Steganography> = Box::from(BitEncoder::new(lsb));
 
         let secret_message = "🦕 hiding text!".as_bytes();
@@ -293,9 +305,9 @@ mod tests {
     #[test]
     fn test_rsb_3_not_decrypts_with_lsb() {
         let img = RgbImage::new(32, 32);
-        let rsb = Box::new(Rsb::new(3, "seed"));
+        let rsb = Box::new(Rsb::new(3, "seed", None));
         let mut rsb_enc: Box<dyn Steganography> = Box::from(BitEncoder::new(rsb));
-        let lsb = Box::new(Lsb::new());
+        let lsb = Box::new(Lsb::default());
         let mut lsb_enc: Box<dyn Steganography> = Box::from(BitEncoder::new(lsb));
 
         let secret_message = "🦕 hiding text!".as_bytes();

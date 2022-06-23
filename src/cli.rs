@@ -118,3 +118,9 @@ impl FromStr for BitDistribution {
         }
     }
 }
+
+impl Default for BitDistribution {
+    fn default() -> Self {
+        BitDistribution::Linear
+    }
+}
