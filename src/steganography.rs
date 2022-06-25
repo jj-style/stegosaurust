@@ -196,16 +196,7 @@ impl Steganography for BitEncoder {
             BitDistribution::Sequential => {
                 'outer: for (_, _, pixel) in img.enumerate_pixels() {
                     for value in pixel.channels() {
-                        if bitstream
-                            .iter()
-                            .rev()
-                            .take(end.len())
-                            .rev()
-                            .copied()
-                            .collect::<Vec<u8>>()
-                            .iter()
-                            .eq(end.iter())
-                        {
+                        if has_end(&bitstream, &end) {
                             break 'outer;
                         }
                         bitstream.push(self.encoder.decode(value));
@@ -215,16 +206,7 @@ impl Steganography for BitEncoder {
             BitDistribution::Linear => todo!("implement linear distribution decoding"),
         }
 
-        if bitstream
-            .iter()
-            .rev()
-            .take(end.len())
-            .rev()
-            .copied()
-            .collect::<Vec<u8>>()
-            .iter()
-            .ne(end.iter())
-        {
+        if !has_end(&bitstream, &end) {
             return Err(StegError::EncodingNotFound);
         }
 
@@ -245,6 +227,30 @@ impl Steganography for BitEncoder {
         }
         Ok(msg)
     }
+}
+
+/// determines if a stream of `byte`s has a terminating `end` sequence of bytes
+/// 
+/// # Example
+/// ```rust
+/// use stegosaurust::steganography::has_end;
+/// let bytes_1 = [1, 2, 3];
+/// let bytes_2 = [1, 2, 2];
+/// let end = [2, 3];
+/// 
+/// assert_eq!(has_end(&bytes_1, &end), true);
+/// assert_eq!(has_end(&bytes_2, &end), false);
+/// ```
+pub fn has_end(bytes: &[u8], end: &[u8]) -> bool {
+    bytes
+        .iter()
+        .rev()
+        .take(end.len())
+        .rev()
+        .copied()
+        .collect::<Vec<u8>>()
+        .iter()
+        .eq(end.iter())
 }
 
 #[cfg(test)]
