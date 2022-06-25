@@ -163,17 +163,31 @@ impl Steganography for BitEncoder {
 
         let mut img = img.clone();
 
+        let linear_pixel_dist = linspace(0., (img.width() * img.height()) as f64, binary_msg.len());
+        let linear_pixel_dist = linear_pixel_dist
+            .map(|p| p.floor() as u32)
+            .collect::<Vec<u32>>();
+        let mut linear_pixel_dist = linear_pixel_dist.iter();
+
         for (ctr, chunk) in binary_msg.chunks(3).enumerate() {
-            match self.bit_dist {
+            let (x, y) = match self.bit_dist {
                 BitDistribution::Sequential => {
                     let x = ctr as u32 % img.width();
                     let y = ctr as u32 / img.width();
-                    let pixel = img.get_pixel_mut(x, y);
-                    for (idx, bit) in chunk.iter().enumerate() {
-                        self.encoder.encode(bit, &mut pixel[idx]);
-                    }
+                    (x, y)
                 }
-                BitDistribution::Linear => todo!("implement linear distribution encoding"),
+                BitDistribution::Linear => {
+                    // SAFETY: unwrap as we create a linspace distribution based on the length of the message so we know
+                    // there are enough pixels
+                    let pixel_num = linear_pixel_dist.next().unwrap();
+                    let x = pixel_num % img.width();
+                    let y = pixel_num / img.width();
+                    (x, y)
+                }
+            };
+            let pixel = img.get_pixel_mut(x, y);
+            for (idx, bit) in chunk.iter().enumerate() {
+                self.encoder.encode(bit, &mut pixel[idx]);
             }
         }
         Ok(img)
@@ -230,14 +244,14 @@ impl Steganography for BitEncoder {
 }
 
 /// determines if a stream of `byte`s has a terminating `end` sequence of bytes
-/// 
+///
 /// # Example
 /// ```rust
 /// use stegosaurust::steganography::has_end;
 /// let bytes_1 = [1, 2, 3];
 /// let bytes_2 = [1, 2, 2];
 /// let end = [2, 3];
-/// 
+///
 /// assert_eq!(has_end(&bytes_1, &end), true);
 /// assert_eq!(has_end(&bytes_2, &end), false);
 /// ```
