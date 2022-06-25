@@ -342,4 +342,13 @@ mod tests {
         assert!(result.is_err());
         assert_eq!(result.unwrap_err(), StegError::EncodingNotFound);
     }
+
+    #[test]
+    fn test_linear_distribution_encoding() {
+        let img = RgbImage::new(32, 32);
+        // make sure img is all black
+        // encode one "white" byte with linear distribution
+        // assert it is white at pixel 0 16 32 ... etc. 
+        assert_eq!(true, false);
+    }
 }
