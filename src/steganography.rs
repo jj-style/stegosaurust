@@ -345,10 +345,28 @@ mod tests {
 
     #[test]
     fn test_linear_distribution_encoding() {
-        let img = RgbImage::new(32, 32);
-        // make sure img is all black
+        let mut img = RgbImage::new(4, 4);
+        // create image of black pixels
+        for x in 0..4 {
+            for y in 0..4 {
+                img.put_pixel(x, y, image::Rgb([0,0,0]));
+            }
+        }
         // encode one "white" byte with linear distribution
-        // assert it is white at pixel 0 16 32 ... etc. 
-        assert_eq!(true, false);
+        let lsb = Box::new(Lsb::default());
+        let mut lsb_enc: Box<dyn Steganography> = Box::from(BitEncoder::new(lsb, Some(BitDistribution::Linear)));
+        let new_img = lsb_enc.encode(&img, b"\x7f").unwrap();
+
+        // expected
+        // 1 0 1 0
+        // 1 0 1 0
+        // 1 0 1 0
+        // 1 0 1 0
+
+        // assert it is white at every other pixel
+        for pixel in new_img.pixels().step_by(2) {
+            // TODO - this is sentimental - check everyother pixel is (RGB)->(1,1,1)
+            assert_eq!(pixel, 1);
+        }
     }
 }
