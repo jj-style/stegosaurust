@@ -2,6 +2,10 @@
 
 ## [Unreleased] - ReleaseDate
 
+## Added
+- bit distribution to spread message evenly throughout image
+- improved error handling
+
 ## [0.3.0] - 2022-06-11
 
 ## Added
