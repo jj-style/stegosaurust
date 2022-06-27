@@ -1,6 +1,6 @@
-use crate::steganography::StegMethod;
 use anyhow::{bail, Result};
 use std::path::PathBuf;
+use std::str::FromStr;
 use structopt::StructOpt;
 
 #[derive(StructOpt)]
@@ -29,6 +29,10 @@ pub struct Opt {
     /// Method to use for encoding (lsb,rsb)
     #[structopt(short, long, default_value = "lsb")]
     pub method: StegMethod,
+
+    /// Method for bit distribution (sequential, linear (linear-N when decoding))
+    #[structopt(long, default_value = "sequential")]
+    pub distribution: BitDistribution,
 
     /// Seed for random significant bit encoding
     #[structopt(short, long, required_if("method", "rsb"))]
@@ -59,5 +63,69 @@ impl Opt {
             }
         }
         Ok(())
+    }
+}
+
+/// Supported steganography encoding algorithms
+#[derive(StructOpt, Debug)]
+pub enum StegMethod {
+    /// Least significant bit encoding
+    ///
+    /// With a binary message, each bit of the message is encoded
+    /// into the least significant bit of each RGB byte of each pixel.
+    LeastSignificantBit,
+    /// Random significant bit encoding
+    ///
+    /// With a binary message, each bit of the message is encoded
+    /// randomly into one of the `n` least significant bits of each RGB byte of each pixel.
+    RandomSignificantBit,
+}
+
+impl FromStr for StegMethod {
+    type Err = String;
+    fn from_str(method: &str) -> Result<Self, Self::Err> {
+        match method {
+            "lsb" => Ok(Self::LeastSignificantBit),
+            "rsb" => Ok(Self::RandomSignificantBit),
+            other => Err(format!("unknown encoding method: {}", other)),
+        }
+    }
+}
+
+/// Supported bit encoding bit distribution methods
+#[derive(StructOpt, Debug)]
+pub enum BitDistribution {
+    /// Encode bits sequentially into the image starting from top-left
+    Sequential,
+    /// Evenly space out the bits in the image so not all packed into top-left
+    Linear { length: usize },
+}
+
+impl FromStr for BitDistribution {
+    type Err = String;
+    fn from_str(method: &str) -> Result<Self, Self::Err> {
+        let parts: Vec<&str> = method.split('-').collect();
+        let method = if parts.len() <= 1 { method } else { parts[0] };
+        match method {
+            "sequential" => Ok(Self::Sequential),
+            "linear" => {
+                let length = *(parts.get(1).unwrap_or(&"0"));
+                let length = length.parse::<usize>().unwrap_or_else(|err| {
+                    eprintln!(
+                        "error parsing message length in linear bit distribution: {}",
+                        err
+                    );
+                    std::process::exit(1);
+                });
+                Ok(Self::Linear { length })
+            }
+            other => Err(format!("unknown bit distribution {}", other)),
+        }
+    }
+}
+
+impl Default for BitDistribution {
+    fn default() -> Self {
+        BitDistribution::Sequential
     }
 }

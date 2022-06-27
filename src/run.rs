@@ -10,7 +10,7 @@ use image::io::Reader as ImageReader;
 use crate::cli;
 use crate::compress::{compress, decompress};
 use crate::crypto;
-use crate::steganography::{BitEncoder, Lsb, Rsb, StegMethod, Steganography};
+use crate::steganography::{BitEncoder, Lsb, Rsb, Steganography};
 
 use pretty_bytes::converter::convert;
 use tabled::Table;
@@ -28,13 +28,13 @@ pub fn run(opt: cli::Opt) -> Result<()> {
 
     // create encoder
     let mut encoder: Box<dyn Steganography> = match opt.method {
-        StegMethod::LeastSignificantBit => {
-            let lsb = Box::new(Lsb::new());
-            Box::new(BitEncoder::new(lsb))
+        cli::StegMethod::LeastSignificantBit => {
+            let lsb = Box::new(Lsb::default());
+            Box::new(BitEncoder::new(lsb, Some(opt.distribution)))
         }
-        StegMethod::RandomSignificantBit => {
+        cli::StegMethod::RandomSignificantBit => {
             let rsb = Box::new(Rsb::new(opt.max_bit.unwrap(), &(opt.seed.unwrap())));
-            Box::new(BitEncoder::new(rsb))
+            Box::new(BitEncoder::new(rsb, Some(opt.distribution)))
         }
     };
 
