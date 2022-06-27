@@ -53,7 +53,9 @@ pub trait BitEncoding {
 pub struct BitEncoder {
     encoder: Box<dyn BitEncoding>,
     /// Bit distribution method to use when encoding bits
-    pub bit_dist: BitDistribution,
+    bit_dist: BitDistribution,
+    /// Whether or not to add token sequence at the end of encoding
+    end_sequence: bool,
 }
 
 impl BitEncoder {
@@ -61,6 +63,7 @@ impl BitEncoder {
         BitEncoder {
             encoder,
             bit_dist: bd.unwrap_or_default(),
+            end_sequence: true,
         }
     }
 }
@@ -150,7 +153,11 @@ impl Steganography for BitEncoder {
     }
 
     fn encode(&mut self, img: &RgbImage, msg: &[u8]) -> Result<RgbImage, StegError> {
-        let msg = [msg, END].concat();
+        let msg = if self.end_sequence {
+            [msg, END].concat()
+        } else {
+            msg.to_owned()
+        };
 
         let mut binary_msg = String::with_capacity(msg.len() * 8);
         for byte in msg {
@@ -163,10 +170,15 @@ impl Steganography for BitEncoder {
 
         let mut img = img.clone();
 
-        let linear_pixel_dist = linspace(0., (img.width() * img.height()) as f64, binary_msg.len());
+        let linear_pixel_dist = linspace(
+            0.,
+            ((img.width() * img.height()) - 1) as f64,
+            (binary_msg.len() as f64 / 3.).ceil() as usize,
+        );
         let linear_pixel_dist = linear_pixel_dist
             .map(|p| p.floor() as u32)
             .collect::<Vec<u32>>();
+        println!("dist: {:?}", linear_pixel_dist);
         let mut linear_pixel_dist = linear_pixel_dist.iter();
 
         for (ctr, chunk) in binary_msg.chunks(3).enumerate() {
@@ -220,12 +232,14 @@ impl Steganography for BitEncoder {
             BitDistribution::Linear => todo!("implement linear distribution decoding"),
         }
 
-        if !has_end(&bitstream, &end) {
-            return Err(StegError::EncodingNotFound);
-        }
+        if self.end_sequence {
+            if !has_end(&bitstream, &end) {
+                return Err(StegError::EncodingNotFound);
+            }
 
-        // message found in the bitstream, remove the END indicator
-        bitstream.truncate(bitstream.len() - end.len());
+            // message found in the bitstream, remove the END indicator
+            bitstream.truncate(bitstream.len() - end.len());
+        }
         let mut msg = Vec::new();
         for chrs in bitstream.chunks(8) {
             let binval = u8::from_str_radix(
@@ -349,24 +363,39 @@ mod tests {
         // create image of black pixels
         for x in 0..4 {
             for y in 0..4 {
-                img.put_pixel(x, y, image::Rgb([0,0,0]));
+                img.put_pixel(x, y, image::Rgb([0, 0, 0]));
             }
         }
-        // encode one "white" byte with linear distribution
-        let lsb = Box::new(Lsb::default());
-        let mut lsb_enc: Box<dyn Steganography> = Box::from(BitEncoder::new(lsb, Some(BitDistribution::Linear)));
-        let new_img = lsb_enc.encode(&img, b"\x7f").unwrap();
+        for pixel in img.pixels() {
+            assert_eq!(*pixel, image::Rgb::<u8>([0, 0, 0]));
+        }
 
-        // expected
-        // 1 0 1 0
-        // 1 0 1 0
-        // 1 0 1 0
-        // 1 0 1 0
+        // encode one byte of all ones with linear distribution
+        let lsb = Box::new(Lsb::default());
+        let mut lsb_enc: Box<dyn Steganography> = Box::from(BitEncoder {
+            encoder: lsb,
+            bit_dist: BitDistribution::Linear,
+            end_sequence: false,
+        });
+        let new_img = lsb_enc.encode(&img, b"\xFF").unwrap();
+
+        // had:
+        // 0 0 0 0
+        // 0 0 0 0
+        // 0 0 0 0
+        // 0 0 0 0
+
+        // encoded: [1, 1, 1, 1, 1, 1, 1, 1] (length=8) into 16-bits with distribution so
+        // expected:
+        // [1,1,1] [0,0,0] [0,0,0] [0,0,0]
+        // [0,0,0] [0,0,0] [0,0,0] [1,1,1]
+        // [0,0,0] [0,0,0] [0,0,0] [0,0,0]
+        // [0,0,0] [0,0,0] [0,0,0] [1,1,0]
+        // data encoded into bits 0, 7 & 15 of the 16 pixels
 
         // assert it is white at every other pixel
-        for pixel in new_img.pixels().step_by(2) {
-            // TODO - this is sentimental - check everyother pixel is (RGB)->(1,1,1)
-            assert_eq!(pixel, 1);
-        }
+        assert_eq!(new_img.get_pixel(0, 0), &image::Rgb::<u8>([1, 1, 1]));
+        assert_eq!(new_img.get_pixel(3, 1), &image::Rgb::<u8>([1, 1, 1]));
+        assert_eq!(new_img.get_pixel(3, 3), &image::Rgb::<u8>([1, 1, 0]));
     }
 }
