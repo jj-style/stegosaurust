@@ -170,15 +170,14 @@ impl Steganography for BitEncoder {
 
         let mut img = img.clone();
 
-        let linear_pixel_dist = linspace(
+        // generate a linear distribution from 0th to last pixel, with (number of bits to encode / 3) inbetween
+        // because in each pixel we encode 3 bits (rgb)
+        let linspace_length = (binary_msg.len() as f64 / 3.).ceil() as usize;
+        let linear_pixel_dist = get_linspace(
             0.,
             ((img.width() * img.height()) - 1) as f64,
-            (binary_msg.len() as f64 / 3.).ceil() as usize,
+            linspace_length,
         );
-        let linear_pixel_dist = linear_pixel_dist
-            .map(|p| p.floor() as u32)
-            .collect::<Vec<u32>>();
-        println!("dist: {:?}", linear_pixel_dist);
         let mut linear_pixel_dist = linear_pixel_dist.iter();
 
         for (ctr, chunk) in binary_msg.chunks(3).enumerate() {
@@ -188,12 +187,12 @@ impl Steganography for BitEncoder {
                     let y = ctr as u32 / img.width();
                     (x, y)
                 }
-                BitDistribution::Linear => {
+                BitDistribution::Linear { length: _ } => {
                     // SAFETY: unwrap as we create a linspace distribution based on the length of the message so we know
                     // there are enough pixels
                     let pixel_num = linear_pixel_dist.next().unwrap();
-                    let x = pixel_num % img.width();
-                    let y = pixel_num / img.width();
+                    let x = *pixel_num as u32 % img.width();
+                    let y = *pixel_num as u32 / img.width();
                     (x, y)
                 }
             };
@@ -201,6 +200,16 @@ impl Steganography for BitEncoder {
             for (idx, bit) in chunk.iter().enumerate() {
                 self.encoder.encode(bit, &mut pixel[idx]);
             }
+        }
+
+        match self.bit_dist {
+            BitDistribution::Linear { length: _ } => {
+                println!(
+                    "Note: use length '{}' when decoding with linear distribution",
+                    linspace_length
+                );
+            }
+            _ => {}
         }
         Ok(img)
     }
@@ -220,16 +229,30 @@ impl Steganography for BitEncoder {
 
         match self.bit_dist {
             BitDistribution::Sequential => {
-                'outer: for (_, _, pixel) in img.enumerate_pixels() {
+                'outer_seq: for (_, _, pixel) in img.enumerate_pixels() {
                     for value in pixel.channels() {
                         if has_end(&bitstream, &end) {
-                            break 'outer;
+                            break 'outer_seq;
                         }
                         bitstream.push(self.encoder.decode(value));
                     }
                 }
             }
-            BitDistribution::Linear => todo!("implement linear distribution decoding"),
+            BitDistribution::Linear { length } => {
+                let linear_pixel_dist =
+                    get_linspace(0., ((img.width() * img.height()) - 1) as f64, length);
+                'outer_lin: for pixel_num in linear_pixel_dist {
+                    let x = pixel_num as u32 % img.width();
+                    let y = pixel_num as u32 / img.width();
+                    let pixel = img.get_pixel(x, y);
+                    for value in pixel.channels() {
+                        if has_end(&bitstream, &end) {
+                            break 'outer_lin;
+                        }
+                        bitstream.push(self.encoder.decode(value));
+                    }
+                }
+            }
         }
 
         if self.end_sequence {
@@ -279,6 +302,18 @@ pub fn has_end(bytes: &[u8], end: &[u8]) -> bool {
         .collect::<Vec<u8>>()
         .iter()
         .eq(end.iter())
+}
+
+/// wrapper around `itertools_num::linspace` to get a linear distribution of `n` `usize` numbers between two numbers
+/// # Example
+/// ```rust
+/// use stegosaurust::steganography::get_linspace;
+/// assert_eq!(get_linspace(0., 10., 3), vec![0, 5, 10]);
+///
+pub fn get_linspace(a: f64, b: f64, n: usize) -> Vec<usize> {
+    linspace(a, b, n)
+        .map(|p| p.floor() as usize)
+        .collect::<Vec<usize>>()
 }
 
 #[cfg(test)]
@@ -374,7 +409,7 @@ mod tests {
         let lsb = Box::new(Lsb::default());
         let mut lsb_enc: Box<dyn Steganography> = Box::from(BitEncoder {
             encoder: lsb,
-            bit_dist: BitDistribution::Linear,
+            bit_dist: BitDistribution::Linear { length: 0 },
             end_sequence: false,
         });
         let new_img = lsb_enc.encode(&img, b"\xFF").unwrap();
@@ -397,5 +432,48 @@ mod tests {
         assert_eq!(new_img.get_pixel(0, 0), &image::Rgb::<u8>([1, 1, 1]));
         assert_eq!(new_img.get_pixel(3, 1), &image::Rgb::<u8>([1, 1, 1]));
         assert_eq!(new_img.get_pixel(3, 3), &image::Rgb::<u8>([1, 1, 0]));
+    }
+
+    #[test]
+    fn test_linear_distribution_decoding() {
+        let mut img = RgbImage::new(4, 4);
+        // create image of black pixels
+        for x in 0..4 {
+            for y in 0..4 {
+                img.put_pixel(x, y, image::Rgb([0, 0, 0]));
+            }
+        }
+        for pixel in img.pixels() {
+            assert_eq!(*pixel, image::Rgb::<u8>([0, 0, 0]));
+        }
+
+        // encode one byte of all ones with linear distribution
+        let lsb = Box::new(Lsb::default());
+        let mut lsb_enc: Box<dyn Steganography> = Box::from(BitEncoder {
+            encoder: lsb,
+            bit_dist: BitDistribution::Linear { length: 0 },
+            end_sequence: false,
+        });
+        let new_img = lsb_enc.encode(&img, b"\xFF").unwrap();
+
+        let lsb = Box::new(Lsb::default());
+        let mut lsb_dec: Box<dyn Steganography> = Box::from(BitEncoder {
+            encoder: lsb,
+            bit_dist: BitDistribution::Linear { length: 3 },
+            end_sequence: false,
+        });
+
+        let result = lsb_dec.decode(&new_img).unwrap();
+        assert_eq!(result[0], 255);
+
+        let lsb = Box::new(Lsb::default());
+        let mut lsb_dec: Box<dyn Steganography> = Box::from(BitEncoder {
+            encoder: lsb,
+            bit_dist: BitDistribution::Linear { length: 4 },
+            end_sequence: false,
+        });
+
+        let result = lsb_dec.decode(&new_img).unwrap();
+        assert_ne!(result[0], 255);
     }
 }

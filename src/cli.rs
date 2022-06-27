@@ -30,7 +30,7 @@ pub struct Opt {
     #[structopt(short, long, default_value = "lsb")]
     pub method: StegMethod,
 
-    /// Method for bit distribution (sequential, linear, random)
+    /// Method for bit distribution (sequential, linear (linear-N when decoding))
     #[structopt(long, default_value = "sequential")]
     pub distribution: BitDistribution,
 
@@ -43,8 +43,8 @@ pub struct Opt {
     pub max_bit: Option<u8>,
 
     /// Seed for random bit distribution
-    #[structopt(long, required_if("distribution", "random"))]
-    pub distribution_seed: Option<String>,
+    // #[structopt(long, required_if("distribution", "random"))]
+    // pub distribution_seed: Option<String>,
 
     /// Output file, stdout if not present
     #[structopt(short, long, parse(from_os_str))]
@@ -102,7 +102,7 @@ pub enum BitDistribution {
     /// Encode bits sequentially into the image starting from top-left
     Sequential,
     /// Evenly space out the bits in the image so not all packed into top-left
-    Linear,
+    Linear { length: usize },
     // /// Based on a random-seed, encode each bit into a random pixel and random colour channel
     // Random,
 }
@@ -110,9 +110,21 @@ pub enum BitDistribution {
 impl FromStr for BitDistribution {
     type Err = String;
     fn from_str(method: &str) -> Result<Self, Self::Err> {
+        let parts: Vec<&str> = method.split('-').collect();
+        let method = if parts.len() <= 1 { method } else { parts[0] };
         match method {
             "sequential" => Ok(Self::Sequential),
-            "linear" => Ok(Self::Linear),
+            "linear" => {
+                let length = *(parts.get(1).unwrap_or(&"0"));
+                let length = length.parse::<usize>().unwrap_or_else(|err| {
+                    eprintln!(
+                        "error parsing message length in linear bit distribution: {}",
+                        err
+                    );
+                    std::process::exit(1);
+                });
+                Ok(Self::Linear { length })
+            }
             // "random" => Ok(Self::Random),
             other => Err(format!("unknown bit distribution {}", other)),
         }
