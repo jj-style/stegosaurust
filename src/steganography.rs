@@ -202,14 +202,11 @@ impl Steganography for BitEncoder {
             }
         }
 
-        match self.bit_dist {
-            BitDistribution::Linear { length: _ } => {
-                println!(
-                    "Note: use length '{}' when decoding with linear distribution",
-                    linspace_length
-                );
-            }
-            _ => {}
+        if let BitDistribution::Linear { length: _ } = self.bit_dist {
+            println!(
+                "Note: use length '{}' when decoding with linear distribution",
+                linspace_length
+            );
         }
         Ok(img)
     }
