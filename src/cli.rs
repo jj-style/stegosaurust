@@ -42,10 +42,6 @@ pub struct Opt {
     #[structopt(short = "N", long, required_if("method", "rsb"))]
     pub max_bit: Option<u8>,
 
-    /// Seed for random bit distribution
-    // #[structopt(long, required_if("distribution", "random"))]
-    // pub distribution_seed: Option<String>,
-
     /// Output file, stdout if not present
     #[structopt(short, long, parse(from_os_str))]
     pub output: Option<PathBuf>,
@@ -103,8 +99,6 @@ pub enum BitDistribution {
     Sequential,
     /// Evenly space out the bits in the image so not all packed into top-left
     Linear { length: usize },
-    // /// Based on a random-seed, encode each bit into a random pixel and random colour channel
-    // Random,
 }
 
 impl FromStr for BitDistribution {
@@ -125,7 +119,6 @@ impl FromStr for BitDistribution {
                 });
                 Ok(Self::Linear { length })
             }
-            // "random" => Ok(Self::Random),
             other => Err(format!("unknown bit distribution {}", other)),
         }
     }
