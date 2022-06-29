@@ -78,12 +78,11 @@ fn encode(opt: cli::Encode) -> Result<()> {
 
         // perform transformations if necessary, decode then decrypt
         if opt.opts.base64 {
-            result = base64::decode(result).context("failed to decode as base64")?;
+            result = base64::decode(result)?;
         }
 
         if let Some(key) = opt.opts.key {
-            result =
-                crypto::decrypt(&result, key.as_bytes()).context("failed to decrypt message")?;
+            result = crypto::decrypt(&result, key.as_bytes())?;
         }
 
         if opt.opts.compress {
@@ -134,8 +133,7 @@ fn encode(opt: cli::Encode) -> Result<()> {
         }
 
         if let Some(key) = &opt.opts.key {
-            message =
-                crypto::encrypt(&message, key.as_bytes()).context("failed to encrypt message")?;
+            message = crypto::encrypt(&message, key.as_bytes())?;
         }
 
         if opt.opts.base64 {
