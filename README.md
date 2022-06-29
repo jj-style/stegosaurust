@@ -6,7 +6,7 @@
 
 <p align="center"><b>A simple image steganography tool, written in rust.</b></p>
 
-[![Publish](https://github.com/jj-style/stegosaurust/actions/workflows/publish.yml/badge.svg?branch=v0.3.0)](https://github.com/jj-style/stegosaurust/actions/workflows/publish.yml)
+[![Publish](https://github.com/jj-style/stegosaurust/actions/workflows/publish.yml/badge.svg?branch=v0.3.1)](https://github.com/jj-style/stegosaurust/actions/workflows/publish.yml)
 [![CI](https://github.com/jj-style/stegosaurust/actions/workflows/ci.yml/badge.svg)](https://github.com/jj-style/stegosaurust/actions/workflows/ci.yml)
 
 # Disclaimer
@@ -22,7 +22,7 @@ See the [examples](#examples) below for more usage.
 
 # Usage
 ```
-🦕 stegosaurust 0.3.0
+🦕 stegosaurust 0.3.1
 Hide text in images, using rust.
 
 USAGE:
@@ -38,12 +38,14 @@ FLAGS:
     -V, --version             Prints version information
 
 OPTIONS:
-    -i, --input <input>        Input file to encode, stdin if not present
-    -k, --key <key>            Encrypt the text before encoding it with AES-256-CBC
-    -N, --max-bit <max-bit>    Maximum bit to possible modify (1-4)
-    -m, --method <method>      Method to use for encoding (lsb,rsb) [default: lsb]
-    -o, --output <output>      Output file, stdout if not present
-    -s, --seed <seed>          Seed for random significant bit encoding
+        --distribution <distribution>    Method for bit distribution (sequential, linear (linear-N when decoding))
+                                         [default: sequential]
+    -i, --input <input>                  Input file to encode, stdin if not present
+    -k, --key <key>                      Encrypt the text before encoding it with AES-256-CBC
+    -N, --max-bit <max-bit>              Maximum bit to possible modify (1-4)
+    -m, --method <method>                Method to use for encoding (lsb,rsb) [default: lsb]
+    -o, --output <output>                Output file, stdout if not present
+    -s, --seed <seed>                    Seed for random significant bit encoding
 
 ARGS:
     <image>    Input image

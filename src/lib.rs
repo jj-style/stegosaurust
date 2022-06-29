@@ -13,3 +13,34 @@ pub mod compress;
 pub mod crypto;
 /// Steganography module containing different implementations of encoding methods.
 pub mod steganography;
+
+use thiserror::Error;
+#[derive(Error, Debug, PartialEq)]
+pub enum StegError {
+    #[error("Encoded message not found in data")]
+    EncodingNotFound,
+    #[error("Error decoding message: `{0}`")]
+    Decoding(String),
+    #[error("Compression error")]
+    Compression(#[from] compression::prelude::CompressionError),
+    #[error("Decompression error")]
+    Decompression(#[from] compression::prelude::BZip2Error),
+    #[error("Encryption error: `{0}`")]
+    Crypto(#[from] CryptoError),
+    #[error("Unknown steganography error")]
+    Unknown,
+}
+
+#[derive(Error, Debug, PartialEq)]
+pub enum CryptoError {
+    #[error("Failed to get random salt")]
+    Salt,
+    #[error("Failed to hash password")]
+    PasswordHash,
+    #[error("Error creating cipher")]
+    Cipher(#[from] aes::cipher::InvalidLength),
+    #[error("Error decrypting ciphertext: `{0}`")]
+    Decryption(String),
+    #[error("unknown cryptography error")]
+    Unknown,
+}

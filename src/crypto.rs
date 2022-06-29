@@ -1,4 +1,4 @@
-use anyhow::Result;
+use crate::CryptoError;
 
 use rand::{distributions::Alphanumeric, Rng};
 
@@ -14,17 +14,17 @@ type Aes128CbcDec = cbc::Decryptor<aes::Aes256>;
 /// Helper function to provide simple mechanism to encrypt some bytes with a key using AES-256-CBC.
 ///
 /// Output is interoperable with openssl encryption format.
-pub fn encrypt(plaintext: &[u8], key: &[u8]) -> Result<Vec<u8>> {
+pub fn encrypt(plaintext: &[u8], key: &[u8]) -> Result<Vec<u8>, CryptoError> {
     let s: String = rand::thread_rng()
         .sample_iter(&Alphanumeric)
         .take(8)
         .map(char::from)
         .collect();
-    let salt = SaltString::new(&s).unwrap();
-    let password_hash = hash_password(key, &salt).unwrap();
+    let salt = SaltString::new(&s).map_err(|_| CryptoError::Salt)?;
+    let password_hash = hash_password(key, &salt).map_err(|_| CryptoError::PasswordHash)?;
     let password_hash = password_hash.hash.unwrap();
     let (key, iv) = password_hash.as_bytes().split_at(32);
-    let cipher = Aes128CbcEnc::new_from_slices(key, iv).unwrap();
+    let cipher = Aes128CbcEnc::new_from_slices(key, iv).map_err(CryptoError::Cipher)?;
     let ciphertext = cipher.encrypt_padded_vec_mut::<Pkcs7>(plaintext);
     let message = ["Salted__".as_bytes(), salt.as_bytes(), &ciphertext].concat();
     Ok(message)
@@ -33,17 +33,19 @@ pub fn encrypt(plaintext: &[u8], key: &[u8]) -> Result<Vec<u8>> {
 /// Helper function to provide simple mechanism to decrypt some bytes with a key using AES-256-CBC.
 ///
 /// Ciphertext is interoperable with openssl encryption format.
-pub fn decrypt(ciphertext: &[u8], key: &[u8]) -> Result<Vec<u8>> {
+pub fn decrypt(ciphertext: &[u8], key: &[u8]) -> Result<Vec<u8>, CryptoError> {
     // TODO: short message not encrypted but attempt to decrypt = panic!
     let (_, rest) = ciphertext.split_at(8); //ignore prefix 'Salted__'
     let (s, rest) = rest.split_at(8);
-    let s = String::from_utf8(s.to_vec()).unwrap();
-    let salt = SaltString::new(&s).unwrap();
-    let password_hash = hash_password(key, &salt).unwrap();
+    let s = String::from_utf8(s.to_vec()).map_err(|e| CryptoError::Decryption(format!("{}", e)))?;
+    let salt = SaltString::new(&s).map_err(|_| CryptoError::Salt)?;
+    let password_hash = hash_password(key, &salt).map_err(|_| CryptoError::PasswordHash)?;
     let password_hash = password_hash.hash.unwrap();
     let (key, iv) = password_hash.as_bytes().split_at(32);
-    let cipher = Aes128CbcDec::new_from_slices(key, iv).unwrap();
-    let plaintext = cipher.decrypt_padded_vec_mut::<Pkcs7>(rest)?;
+    let cipher = Aes128CbcDec::new_from_slices(key, iv).map_err(CryptoError::Cipher)?;
+    let plaintext = cipher
+        .decrypt_padded_vec_mut::<Pkcs7>(rest)
+        .map_err(|e| CryptoError::Decryption(format!("{}", e)))?;
     Ok(plaintext)
 }
 

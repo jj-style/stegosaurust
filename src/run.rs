@@ -12,7 +12,7 @@ use tabled::Table;
 use crate::cli;
 use crate::compress::{compress, decompress};
 use crate::crypto;
-use crate::steganography::{BitEncoder, DisguiseAssets, Lsb, Rsb, StegMethod, Steganography};
+use crate::steganography::{BitEncoder, DisguiseAssets, Lsb, Rsb, Steganography};
 
 fn load_rgb8_img(path: &PathBuf) -> Result<image::RgbImage> {
     let img = ImageReader::open(path)
@@ -33,18 +33,26 @@ pub fn run(opt: cli::Opt) -> Result<()> {
 fn encode(opt: cli::Encode) -> Result<()> {
     let rgb8_img = load_rgb8_img(&opt.image)?;
 
+    let steg_method = opt.opts.method.unwrap_or_default();
+
     // create encoder
-    let mut encoder: Box<dyn Steganography> = match opt.opts.method {
-        StegMethod::LeastSignificantBit => {
-            let lsb = Box::new(Lsb::new());
-            Box::new(BitEncoder::new(lsb))
+    let mut encoder: Box<dyn Steganography> = match &steg_method {
+        cli::StegMethod::LeastSignificantBit => {
+            let lsb = Box::new(Lsb::default());
+            Box::new(BitEncoder::new(
+                lsb,
+                Some(opt.opts.distribution.unwrap_or_default()),
+            ))
         }
-        StegMethod::RandomSignificantBit => {
+        cli::StegMethod::RandomSignificantBit => {
             let rsb = Box::new(Rsb::new(
                 opt.opts.max_bit.unwrap(),
                 &(opt.opts.seed.unwrap()),
             ));
-            Box::new(BitEncoder::new(rsb))
+            Box::new(BitEncoder::new(
+                rsb,
+                Some(opt.opts.distribution.unwrap_or_default()),
+            ))
         }
     };
 
@@ -52,7 +60,7 @@ fn encode(opt: cli::Encode) -> Result<()> {
     if opt.check_max_length {
         let table = Table::new(vec![
             ("Image", opt.image.to_str().unwrap()),
-            ("Encoding Method", &format!("{:?}", opt.opts.method)),
+            ("Encoding Method", &format!("{:?}", steg_method)),
             ("Max Message Length", &convert(max_msg_len as f64)),
         ])
         .with(tabled::Style::blank())

@@ -2,7 +2,7 @@
 name = "stegosaurust"
 description = "A steganography tool, written in rust."
 authors = ["JJ Style <style.jj@pm.me>"]
-version = "0.3.0"
+version = "0.3.1"
 edition = "2021"
 readme = "README.md"
 license = "GPL-3.0"
@@ -18,6 +18,7 @@ keywords = ["steganography","secrets","hide","image"]
 image = "0.23.14"
 structopt = "0.3"
 anyhow = "1.0.57"
+thiserror = "1.0.31"
 atty = "0.2"
 base64 = "0.13.0"
 aes = "0.8.1"
@@ -33,3 +34,4 @@ compression = "0.1.5"
 rust-embed = { version="6.4.0", features = ["include-flate"] }
 log = "0.4.6"
 env_logger = "0.9.0"
+itertools-num = "0.1.3"
