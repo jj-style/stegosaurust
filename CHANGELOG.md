@@ -2,6 +2,8 @@
 
 ## [Unreleased] - ReleaseDate
 
+## [0.4.0] - 2022-07-06
+
 ## Added
 - disguise functionality to mask all files in a directory through the `disguise` subcommand
 - better error handling
@@ -49,7 +51,8 @@
   - release binaries to github
 
 <!-- next-url -->
-[Unreleased]: https://github.com/jj-style/stegosaurust/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/jj-style/stegosaurust/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/jj-style/stegosaurust/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/jj-style/stegosaurust/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/jj-style/stegosaurust/compare/v0.2.4...v0.3.0
 [0.2.4]: https://github.com/jj-style/stegosaurust/compare/v0.2.3...v0.2.4
