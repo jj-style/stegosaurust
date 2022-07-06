@@ -2,6 +2,18 @@
 
 ## [Unreleased] - ReleaseDate
 
+## Added
+- disguise functionality to mask all files in a directory through the `disguise` subcommand
+- better error handling
+- logging - level modified through environment variable `RUST_LOG`
+ 
+## Changed
+- CLI interface to have subcommands
+  - example from previous usage
+  "echo my message | stegosaurust -o out.png input.png"
+  is now
+  "echo my message | stegosaurust enc -o out.png input.png"
+
 ## [0.3.1] - 2022-06-27
 
 ## Added

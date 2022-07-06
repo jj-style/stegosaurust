@@ -3,12 +3,20 @@ use itertools_num::linspace;
 use rand::Rng;
 use rand_pcg::Pcg64;
 use rand_seeder::Seeder;
+use rust_embed::RustEmbed;
 use std::convert::From;
+use std::fmt::Write;
 
 use crate::cli::BitDistribution;
 use crate::StegError;
 
 const END: &[u8] = b"$T3G";
+
+#[derive(RustEmbed, Clone)]
+#[folder = "assets/images"]
+#[prefix = "assets/images/"]
+#[include = "*.jpg"]
+pub struct DisguiseAssets;
 
 /// Behaviour to encode a message into an image and decode the message back out
 pub trait Steganography {
@@ -161,7 +169,7 @@ impl Steganography for BitEncoder {
 
         let mut binary_msg = String::with_capacity(msg.len() * 8);
         for byte in msg {
-            binary_msg += &format!("{:08b}", byte);
+            let _ = write!(binary_msg, "{:08b}", byte);
         }
         let binary_msg: Vec<u8> = binary_msg
             .chars()
@@ -216,7 +224,7 @@ impl Steganography for BitEncoder {
 
         let mut endstream = String::new();
         for byte in END {
-            endstream += &format!("{:08b}", byte);
+            let _ = write!(endstream, "{:08b}", byte);
         }
 
         let end = endstream

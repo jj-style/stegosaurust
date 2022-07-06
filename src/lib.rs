@@ -25,7 +25,7 @@ pub enum StegError {
     Compression(#[from] compression::prelude::CompressionError),
     #[error("Decompression error")]
     Decompression(#[from] compression::prelude::BZip2Error),
-    #[error("Encryption error: `{0}`")]
+    #[error("Encryption error")]
     Crypto(#[from] CryptoError),
     #[error("Unknown steganography error")]
     Unknown,

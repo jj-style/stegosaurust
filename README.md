@@ -15,8 +15,8 @@
 # Introduction
 Easily encode messages in images:
 ```bash
-echo "text to hide" | stegosaurust --output encoded_image.png image.png
-stegosaurust --decode encoded_image.png 
+echo "text to hide" | stegosaurust enc --output encoded_image.png image.png
+stegosaurust enc --decode encoded_image.png 
 ```
 See the [examples](#examples) below for more usage. 
 
@@ -26,29 +26,16 @@ See the [examples](#examples) below for more usage.
 Hide text in images, using rust.
 
 USAGE:
-    stegosaurust [FLAGS] [OPTIONS] <image>
+    stegosaurust <SUBCOMMAND>
 
 FLAGS:
-    -b, --base64              Encode/decode with base64
-    -C, --check-max-length    Check max message size that can be encoded with options given. Does not perform the
-                              encoding, acts like a dry-run
-    -c, --compress            Compress/decompress data
-    -d, --decode              Decode a message from the image
-    -h, --help                Prints help information
-    -V, --version             Prints version information
+    -h, --help       Prints help information
+    -V, --version    Prints version information
 
-OPTIONS:
-        --distribution <distribution>    Method for bit distribution (sequential, linear (linear-N when decoding))
-                                         [default: sequential]
-    -i, --input <input>                  Input file to encode, stdin if not present
-    -k, --key <key>                      Encrypt the text before encoding it with AES-256-CBC
-    -N, --max-bit <max-bit>              Maximum bit to possible modify (1-4)
-    -m, --method <method>                Method to use for encoding (lsb,rsb) [default: lsb]
-    -o, --output <output>                Output file, stdout if not present
-    -s, --seed <seed>                    Seed for random significant bit encoding
-
-ARGS:
-    <image>    Input image
+SUBCOMMANDS:
+    disguise    mask all files in a directory using steganography
+    enc         encode files using steganography
+    help        Prints this message or the help of the given subcommand(s)
 ```
 
 # Installation
@@ -73,8 +60,8 @@ The examples below assume you have installed the program ([see here](#installati
 
 ```bash
 # how much data can we fit in an image...
-stegosaurust --decode examples/example-2.png | mpv -
+stegosaurust enc --decode examples/example-2.png | mpv -
 
 # is there something hidden in the logo on the README?
-stegosaurust --decode .github/logo.png | xargs python -c "import webbrowser,sys; webbrowser.open(sys.argv[1])"
+stegosaurust enc --decode .github/logo.png | xargs python -c "import webbrowser,sys; webbrowser.open(sys.argv[1])"
 ```
