@@ -2,6 +2,8 @@
 
 ## [Unreleased] - ReleaseDate
 
+## [0.4.1] - 2022-07-06
+
 ## Removed
 - assets to ensure crate is within crates.io max upload size 
 
@@ -54,7 +56,8 @@
   - release binaries to github
 
 <!-- next-url -->
-[Unreleased]: https://github.com/jj-style/stegosaurust/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/jj-style/stegosaurust/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/jj-style/stegosaurust/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/jj-style/stegosaurust/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/jj-style/stegosaurust/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/jj-style/stegosaurust/compare/v0.2.4...v0.3.0
