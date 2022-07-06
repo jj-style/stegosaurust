@@ -2,6 +2,9 @@
 
 ## [Unreleased] - ReleaseDate
 
+## Removed
+- assets to ensure crate is within crates.io max upload size 
+
 ## [0.4.0] - 2022-07-06
 
 ## Added
