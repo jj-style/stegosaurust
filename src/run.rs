@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 use anyhow::{bail, Context, Result};
 use atty::Stream;
 use image::io::Reader as ImageReader;
-use log::debug;
+use log::{debug, error, warn};
 use pretty_bytes::converter::convert;
 use tabled::Table;
 
@@ -13,6 +13,7 @@ use crate::cli;
 use crate::compress::{compress, decompress};
 use crate::crypto;
 use crate::steganography::{BitEncoder, DisguiseAssets, Lsb, Rsb, Steganography};
+use crate::StegError;
 
 fn load_rgb8_img(path: &PathBuf) -> Result<image::RgbImage> {
     let img = ImageReader::open(path)
@@ -82,7 +83,7 @@ fn encode(opt: cli::Encode) -> Result<()> {
         }
 
         if let Some(key) = opt.opts.key {
-            result = crypto::decrypt(&result, key.as_bytes())?;
+            result = crypto::decrypt(&result, key.as_bytes()).map_err(StegError::Crypto)?;
         }
 
         if opt.opts.compress {
@@ -133,7 +134,7 @@ fn encode(opt: cli::Encode) -> Result<()> {
         }
 
         if let Some(key) = &opt.opts.key {
-            message = crypto::encrypt(&message, key.as_bytes())?;
+            message = crypto::encrypt(&message, key.as_bytes()).map_err(StegError::Crypto)?;
         }
 
         if opt.opts.base64 {
@@ -171,31 +172,52 @@ Try again using the compression flag --compress/-c, if not please use a larger i
 /// Disguise all files in directory by encoding them with assets embedded in the program
 fn disguise(opt: cli::Disguise) -> Result<()> {
     if opt.opts.decode {
-        for (_, entry) in std::fs::read_dir(&opt.dir)
+        for (_, dirent) in std::fs::read_dir(&opt.dir)
             .context(format!("reading {:?}", opt.dir))?
             .enumerate()
         {
-            let entry = entry?;
-            if entry.path().is_file() {
-                let entry = entry.path();
-                let fname = entry.file_stem().unwrap();
+            let dirent = dirent?;
+            if dirent.path().is_file() {
+                let path = dirent.path();
+                let fname = path.file_stem().unwrap();
                 let fname = fname.to_str().unwrap();
-                if let Ok(original_fname) = base64::decode(fname.as_bytes()) {
-                    let original_fname = std::str::from_utf8(&original_fname)
-                        .context(format!("error deriving original filename from {:?}", entry))?;
-                    let mut new_path = entry.clone();
-                    new_path.set_file_name(original_fname);
-                    if opt.opts.debug {
-                        debug!("decoding to {:?}", new_path);
+                let original_fname = match base64::decode(fname.as_bytes()) {
+                    Ok(res) => res,
+                    Err(err) => {
+                        warn!(
+                            "error decoding original filename from {:?}: {:?}",
+                            path, err
+                        );
+                        continue;
                     }
-                    encode(cli::Encode {
-                        check_max_length: false,
-                        opts: opt.opts.clone(),
-                        input: None,
-                        output: Some(new_path), // where to restore
-                        image: entry.clone(),   // image to decode
-                    })?;
-                    std::fs::remove_file(entry)?;
+                };
+                let original_fname = match std::str::from_utf8(&original_fname) {
+                    Ok(res) => res,
+                    Err(err) => {
+                        warn!(
+                            "error deriving original filename from {:?}: {:?}",
+                            path, err
+                        );
+                        continue;
+                    }
+                };
+                let mut new_path = path.clone();
+                new_path.set_file_name(original_fname);
+
+                debug!("decoding {} ==> {}", path.display(), new_path.display());
+
+                match encode(cli::Encode {
+                    check_max_length: false,
+                    opts: opt.opts.clone(),
+                    input: None,
+                    output: Some(new_path), // where to restore
+                    image: path.clone(),    // image to decode
+                }) {
+                    Ok(_) => std::fs::remove_file(path)?,
+                    Err(err) => {
+                        error!("error decoding {:?}: {:?}", path, err);
+                        continue;
+                    }
                 }
             }
         }
@@ -203,33 +225,43 @@ fn disguise(opt: cli::Disguise) -> Result<()> {
         let assets = DisguiseAssets::iter()
             .map(|a| a.to_string())
             .collect::<Vec<String>>();
-        let mut assets = assets.iter().cycle();
-        for (_, entry) in std::fs::read_dir(&opt.dir)
+        let mut assets = assets.iter().cycle(); // keep re-using the finite set of assets to encode each file in the target directory
+        for (_, dirent) in std::fs::read_dir(&opt.dir)
             .context(format!("reading {:?}", opt.dir))?
             .enumerate()
         {
-            let entry = entry?;
-            if entry.path().is_file() {
-                let mask = assets.next().unwrap();
-                let mask = Path::new(mask);
-                if opt.opts.debug {
-                    debug!("encode {} with {:?}", entry.path().display(), mask);
-                }
+            let dirent = dirent?;
+            if dirent.path().is_file() {
+                let path = dirent.path();
+                // SAFETY: `assets.next()` will always yield `Some` result as the iter is cycled above
+                let img_mask = Path::new(assets.next().unwrap());
 
-                let mut new_fname: PathBuf = entry.path().clone();
+                let mut new_fname: PathBuf = dirent.path().clone();
                 new_fname.set_file_name(base64::encode(
                     new_fname.file_name().unwrap().to_str().unwrap(),
                 ));
                 new_fname.set_extension("png");
 
-                encode(cli::Encode {
+                debug!(
+                    "encoding {} with {} ==> {}",
+                    path.display(),
+                    img_mask.display(),
+                    new_fname.display()
+                );
+
+                match encode(cli::Encode {
                     check_max_length: false,
                     opts: opt.opts.clone(),
-                    input: Some(entry.path()), // what to hide
-                    output: Some(new_fname),   // where to hide
-                    image: mask.to_owned(),    // image to hide in
-                })?;
-                std::fs::remove_file(entry.path())?;
+                    input: Some(dirent.path()), // what to hide
+                    output: Some(new_fname),    // where to hide
+                    image: img_mask.to_owned(), // image to hide in
+                }) {
+                    Ok(_) => std::fs::remove_file(dirent.path())?,
+                    Err(err) => {
+                        error!("error encoding {:?}: {:?}", dirent, err);
+                        continue;
+                    }
+                }
             }
         }
     }

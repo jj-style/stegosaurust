@@ -54,10 +54,6 @@ pub struct Disguise {
 
 #[derive(StructOpt, Clone)]
 pub struct EncodeOpts {
-    /// Enable debugging messages
-    #[structopt(long)]
-    pub debug: bool,
-
     /// Decode a message from the image
     #[structopt(short, long)]
     pub decode: bool,
