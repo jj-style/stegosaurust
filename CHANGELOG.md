@@ -4,6 +4,9 @@
 
 ## [0.4.1] - 2022-07-06
 
+## Fixed
+- assets not found when using disguise
+
 ## Removed
 - assets to ensure crate is within crates.io max upload size 
 
