@@ -2,6 +2,8 @@
 
 ## [Unreleased] - ReleaseDate
 
+## [0.4.2] - 2022-07-06
+
 ## [0.4.1] - 2022-07-06
 
 ## Fixed
@@ -59,7 +61,8 @@
   - release binaries to github
 
 <!-- next-url -->
-[Unreleased]: https://github.com/jj-style/stegosaurust/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/jj-style/stegosaurust/compare/v0.4.2...HEAD
+[0.4.2]: https://github.com/jj-style/stegosaurust/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/jj-style/stegosaurust/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/jj-style/stegosaurust/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/jj-style/stegosaurust/compare/v0.3.0...v0.3.1
