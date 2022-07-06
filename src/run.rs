@@ -26,13 +26,16 @@ fn load_rgb8_img(path: &PathBuf) -> Result<image::RgbImage> {
 pub fn run(opt: cli::Opt) -> Result<()> {
     match opt.cmd {
         cli::Command::Disguise(opts) => disguise(opts),
-        cli::Command::Encode(opts) => encode(opts),
+        cli::Command::Encode(opts) => {
+            let rgb8_img = load_rgb8_img(&opts.image)?;
+            encode(opts, rgb8_img)
+        }
     }
 }
 
 /// perform an encoding
-fn encode(opt: cli::Encode) -> Result<()> {
-    let rgb8_img = load_rgb8_img(&opt.image)?;
+fn encode(opt: cli::Encode, mask: image::RgbImage) -> Result<()> {
+    // let rgb8_img = load_rgb8_img(&opt.image)?;
 
     let steg_method = opt.opts.method.unwrap_or_default();
 
@@ -57,7 +60,7 @@ fn encode(opt: cli::Encode) -> Result<()> {
         }
     };
 
-    let max_msg_len = encoder.max_len(&rgb8_img);
+    let max_msg_len = encoder.max_len(&mask);
     if opt.check_max_length {
         let table = Table::new(vec![
             ("Image", opt.image.to_str().unwrap()),
@@ -74,7 +77,7 @@ fn encode(opt: cli::Encode) -> Result<()> {
 
     if opt.opts.decode {
         let mut result = encoder
-            .decode(&rgb8_img)
+            .decode(&mask)
             .context("failed to decode message from image")?;
 
         // perform transformations if necessary, decode then decrypt
@@ -153,7 +156,7 @@ Try again using the compression flag --compress/-c, if not please use a larger i
 
         // encode
         let result = encoder
-            .encode(&rgb8_img, &message)
+            .encode(&mask, &message)
             .context("failed to encode message")?;
         match opt.output {
             Some(path) => {
@@ -208,15 +211,20 @@ fn disguise(opt: cli::Disguise) -> Result<()> {
                 let mut new_path = path.clone();
                 new_path.set_file_name(original_fname);
 
+                let mask = load_rgb8_img(&path)?;
+
                 debug!("decoding {} ==> {}", path.display(), new_path.display());
 
-                match encode(cli::Encode {
-                    check_max_length: false,
-                    opts: opt.opts.clone(),
-                    input: None,
-                    output: Some(new_path), // where to restore
-                    image: path.clone(),    // image to decode
-                }) {
+                match encode(
+                    cli::Encode {
+                        check_max_length: false,
+                        opts: opt.opts.clone(),
+                        input: None,
+                        output: Some(new_path), // where to restore
+                        image: path.clone(),    // image to decode
+                    },
+                    mask,
+                ) {
                     Ok(_) => std::fs::remove_file(path)?,
                     Err(err) => {
                         error!("error decoding {}: {:?}", path.display(), err);
@@ -250,6 +258,13 @@ fn disguise(opt: cli::Disguise) -> Result<()> {
                 ));
                 new_fname.set_extension("png");
 
+                let asset_data = DisguiseAssets::get(img_mask.to_str().unwrap()).unwrap();
+                let mask = ImageReader::new(std::io::Cursor::new(asset_data.data))
+                    .with_guessed_format()?
+                    .decode()
+                    .context("error reading image from embedded asset")?
+                    .into_rgb8();
+
                 debug!(
                     "encoding {} with {} ==> {}",
                     path.display(),
@@ -257,13 +272,16 @@ fn disguise(opt: cli::Disguise) -> Result<()> {
                     new_fname.display()
                 );
 
-                match encode(cli::Encode {
-                    check_max_length: false,
-                    opts: opt.opts.clone(),
-                    input: Some(dirent.path()), // what to hide
-                    output: Some(new_fname),    // where to hide
-                    image: img_mask.to_owned(), // image to hide in
-                }) {
+                match encode(
+                    cli::Encode {
+                        check_max_length: false,
+                        opts: opt.opts.clone(),
+                        input: Some(dirent.path()), // what to hide
+                        output: Some(new_fname),    // where to hide
+                        image: img_mask.to_owned(), // image to hide in
+                    },
+                    mask,
+                ) {
                     Ok(_) => std::fs::remove_file(dirent.path())?,
                     Err(err) => {
                         error!("error encoding {}: {:?}", path.display(), err);
