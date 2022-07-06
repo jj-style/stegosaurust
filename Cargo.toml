@@ -10,7 +10,6 @@ repository = "https://github.com/jj-style/stegosaurust"
 homepage = "https://github.com/jj-style/stegosaurust"
 documentation = "https://docs.rs/stegosaurust"
 keywords = ["steganography","secrets","hide","image"]
-exclude = ["assets/"]
 
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
