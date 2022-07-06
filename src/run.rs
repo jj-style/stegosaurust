@@ -1,4 +1,4 @@
-use std::fs::File;
+use std::fs::{DirEntry, File};
 use std::io::{stdin, stdout, Read, Write};
 use std::path::{Path, PathBuf};
 
@@ -174,9 +174,13 @@ fn disguise(opt: cli::Disguise) -> Result<()> {
     if opt.opts.decode {
         for (_, dirent) in std::fs::read_dir(&opt.dir)
             .context(format!("reading {:?}", opt.dir))?
+            .into_iter()
+            .filter(|r| r.is_ok())
+            // SAFETY: since we only have the Ok variants from above `filter`
+            .map(|r| r.unwrap())
+            .filter(is_not_hidden)
             .enumerate()
         {
-            let dirent = dirent?;
             if dirent.path().is_file() {
                 let path = dirent.path();
                 let fname = path.file_stem().unwrap();
@@ -215,7 +219,7 @@ fn disguise(opt: cli::Disguise) -> Result<()> {
                 }) {
                     Ok(_) => std::fs::remove_file(path)?,
                     Err(err) => {
-                        error!("error decoding {:?}: {:?}", path, err);
+                        error!("error decoding {}: {:?}", path.display(), err);
                         continue;
                     }
                 }
@@ -228,9 +232,13 @@ fn disguise(opt: cli::Disguise) -> Result<()> {
         let mut assets = assets.iter().cycle(); // keep re-using the finite set of assets to encode each file in the target directory
         for (_, dirent) in std::fs::read_dir(&opt.dir)
             .context(format!("reading {:?}", opt.dir))?
+            .into_iter()
+            .filter(|r| r.is_ok())
+            // SAFETY: since we only have the Ok variants from above `filter`
+            .map(|r| r.unwrap())
+            .filter(is_not_hidden)
             .enumerate()
         {
-            let dirent = dirent?;
             if dirent.path().is_file() {
                 let path = dirent.path();
                 // SAFETY: `assets.next()` will always yield `Some` result as the iter is cycled above
@@ -258,7 +266,7 @@ fn disguise(opt: cli::Disguise) -> Result<()> {
                 }) {
                     Ok(_) => std::fs::remove_file(dirent.path())?,
                     Err(err) => {
-                        error!("error encoding {:?}: {:?}", dirent, err);
+                        error!("error encoding {}: {:?}", path.display(), err);
                         continue;
                     }
                 }
@@ -266,4 +274,13 @@ fn disguise(opt: cli::Disguise) -> Result<()> {
         }
     }
     Ok(())
+}
+
+/// Determine whether a directory entry is a hidden file (i.e. starts with a `.`)
+fn is_not_hidden(entry: &DirEntry) -> bool {
+    entry
+        .file_name()
+        .to_str()
+        .map(|s| !s.starts_with('.'))
+        .unwrap_or(false)
 }
