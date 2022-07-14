@@ -2,6 +2,9 @@
 
 ## [Unreleased] - ReleaseDate
 
+## Added
+- when running `disguise` subcommand, if masking asset can't fit the file inside, all assets are tried in turn until one is found that fits, otherwise it gives up.
+
 ## Fixed
 - don't panic when attempting to decrypt a message that wasn't encrypted to begin with
 
