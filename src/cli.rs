@@ -88,7 +88,7 @@ pub struct EncodeOpts {
 }
 
 /// Supported steganography encoding algorithms
-#[derive(StructOpt, Debug, Clone)]
+#[derive(StructOpt, Debug, Clone, Copy)]
 pub enum StegMethod {
     /// Least significant bit encoding
     ///

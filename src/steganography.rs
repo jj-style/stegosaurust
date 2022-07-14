@@ -7,7 +7,7 @@ use rust_embed::RustEmbed;
 use std::convert::From;
 use std::fmt::Write;
 
-use crate::cli::BitDistribution;
+use crate::cli::{BitDistribution, EncodeOpts, StegMethod};
 use crate::StegError;
 
 const END: &[u8] = b"$T3G";
@@ -26,6 +26,31 @@ pub trait Steganography {
     fn decode(&mut self, img: &RgbImage) -> Result<Vec<u8>, StegError>;
     /// Computes the maximum length message that can be encoded into a given image with the steganography method implemented
     fn max_len(&self, img: &RgbImage) -> usize;
+}
+
+/// Get a steganography encoder from cli `EncodeOpts`
+pub fn encoder_from_opts(opts: EncodeOpts) -> Box<dyn Steganography> {
+    let steg_method = opts.method.unwrap_or_default();
+
+    // create encoder
+    let encoder: Box<dyn Steganography> = match &steg_method {
+        StegMethod::LeastSignificantBit => {
+            let lsb = Box::new(Lsb::default());
+            Box::new(BitEncoder::new(
+                lsb,
+                Some(opts.distribution.unwrap_or_default()),
+            ))
+        }
+        StegMethod::RandomSignificantBit => {
+            let rsb = Box::new(Rsb::new(opts.max_bit.unwrap(), &opts.seed.unwrap()));
+            Box::new(BitEncoder::new(
+                rsb,
+                Some(opts.distribution.unwrap_or_default()),
+            ))
+        }
+    };
+
+    encoder
 }
 
 /// Bit masks for setting/clearing bits in bytes.
