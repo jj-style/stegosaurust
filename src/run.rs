@@ -12,7 +12,7 @@ use tabled::Table;
 use crate::cli;
 use crate::compress::{compress, decompress};
 use crate::crypto;
-use crate::steganography::{BitEncoder, DisguiseAssets, Lsb, Rsb, Steganography};
+use crate::steganography::{encoder_from_opts, DisguiseAssets};
 use crate::StegError;
 
 fn load_rgb8_img(path: &PathBuf) -> Result<image::RgbImage> {
@@ -40,25 +40,7 @@ fn encode(opt: cli::Encode, mask: image::RgbImage) -> Result<()> {
     let steg_method = opt.opts.method.unwrap_or_default();
 
     // create encoder
-    let mut encoder: Box<dyn Steganography> = match &steg_method {
-        cli::StegMethod::LeastSignificantBit => {
-            let lsb = Box::new(Lsb::default());
-            Box::new(BitEncoder::new(
-                lsb,
-                Some(opt.opts.distribution.unwrap_or_default()),
-            ))
-        }
-        cli::StegMethod::RandomSignificantBit => {
-            let rsb = Box::new(Rsb::new(
-                opt.opts.max_bit.unwrap(),
-                &(opt.opts.seed.unwrap()),
-            ));
-            Box::new(BitEncoder::new(
-                rsb,
-                Some(opt.opts.distribution.unwrap_or_default()),
-            ))
-        }
-    };
+    let mut encoder = encoder_from_opts(opt.opts.clone());
 
     let max_msg_len = encoder.max_len(&mask);
     if opt.check_max_length {
@@ -238,7 +220,7 @@ fn disguise(opt: cli::Disguise) -> Result<()> {
             .map(|a| a.to_string())
             .collect::<Vec<String>>();
         let mut assets = assets.iter().cycle(); // keep re-using the finite set of assets to encode each file in the target directory
-        for (_, dirent) in std::fs::read_dir(&opt.dir)
+        'outer: for (_, dirent) in std::fs::read_dir(&opt.dir)
             .context(format!("reading {:?}", opt.dir))?
             .into_iter()
             .filter(|r| r.is_ok())
@@ -250,20 +232,48 @@ fn disguise(opt: cli::Disguise) -> Result<()> {
             if dirent.path().is_file() {
                 let path = dirent.path();
                 // SAFETY: `assets.next()` will always yield `Some` result as the iter is cycled above
-                let img_mask = Path::new(assets.next().unwrap());
+                let mut next_asset = assets.next().unwrap();
+                let first_asset = next_asset.clone();
+                let (img_mask, mask) = loop {
+                    let img_mask = Path::new(next_asset);
+                    let asset_data = DisguiseAssets::get(img_mask.to_str().unwrap()).unwrap();
+                    let mask = ImageReader::new(std::io::Cursor::new(asset_data.data))
+                        .with_guessed_format()?
+                        .decode()
+                        .context("error reading image from embedded asset")?
+                        .into_rgb8();
+
+                    let data_to_hide = {
+                        let mut file = File::open(&path)
+                            .context(format!("failed to read {}", path.to_str().unwrap()))?;
+                        let mut buffer = Vec::new();
+                        file.read_to_end(&mut buffer)?;
+                        buffer
+                    };
+
+                    let encoder = encoder_from_opts(opt.opts.clone());
+
+                    // check asset can fit file within, if not try next, or skip file if tried them all
+                    if encoder.max_len(&mask) < data_to_hide.len() {
+                        debug!("{} too small to mask {}", next_asset, path.display());
+                        next_asset = assets.next().unwrap();
+                        if *next_asset == first_asset {
+                            debug!(
+                                "no asset large enough to mask {}. Skipping file",
+                                path.display()
+                            );
+                            continue 'outer;
+                        }
+                        continue;
+                    }
+                    break (img_mask, mask);
+                };
 
                 let mut new_fname: PathBuf = dirent.path().clone();
                 new_fname.set_file_name(base64::encode(
                     new_fname.file_name().unwrap().to_str().unwrap(),
                 ));
                 new_fname.set_extension("png");
-
-                let asset_data = DisguiseAssets::get(img_mask.to_str().unwrap()).unwrap();
-                let mask = ImageReader::new(std::io::Cursor::new(asset_data.data))
-                    .with_guessed_format()?
-                    .decode()
-                    .context("error reading image from embedded asset")?
-                    .into_rgb8();
 
                 debug!(
                     "encoding {} with {} ==> {}",
