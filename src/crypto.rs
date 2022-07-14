@@ -34,7 +34,16 @@ pub fn encrypt(plaintext: &[u8], key: &[u8]) -> Result<Vec<u8>, CryptoError> {
 ///
 /// Ciphertext is interoperable with openssl encryption format.
 pub fn decrypt(ciphertext: &[u8], key: &[u8]) -> Result<Vec<u8>, CryptoError> {
-    // TODO: short message not encrypted but attempt to decrypt = panic!
+    if !ciphertext.starts_with(b"Salted__") {
+        return Err(CryptoError::Decryption(
+            "message was not encrypted when encoded".to_string(),
+        ));
+    }
+    if ciphertext.len() < 16 {
+        return Err(CryptoError::Decryption(
+            "ciphertext is too short".to_string(),
+        ));
+    }
     let (_, rest) = ciphertext.split_at(8); //ignore prefix 'Salted__'
     let (s, rest) = rest.split_at(8);
     let s = String::from_utf8(s.to_vec()).map_err(|e| CryptoError::Decryption(format!("{}", e)))?;
@@ -83,5 +92,27 @@ mod tests {
             .unwrap()
             .iter()
             .eq(plaintext.iter()));
+    }
+
+    #[test]
+    fn test_decryption_fails_when_not_encrypted() {
+        let plaintext = b"secret message";
+        let key = b"rust";
+        let result = decrypt(plaintext, key);
+        assert!(result.is_err());
+        if let Err(err) = result {
+            assert!(format!("{}", err).contains("not encrypted"));
+        }
+    }
+
+    #[test]
+    fn test_invalid_short_cryptotext_not_panic() {
+        let ciphertext = b"Salted__short";
+        let key = b"rust";
+        let result = decrypt(ciphertext, key);
+        assert!(result.is_err());
+        if let Err(err) = result {
+            assert!(format!("{}", err).contains("too short"));
+        }
     }
 }

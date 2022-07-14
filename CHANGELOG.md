@@ -2,6 +2,9 @@
 
 ## [Unreleased] - ReleaseDate
 
+## Fixed
+- don't panic when attempting to decrypt a message that wasn't encrypted to begin with
+
 ## [0.4.2] - 2022-07-06
 
 ## [0.4.1] - 2022-07-06
