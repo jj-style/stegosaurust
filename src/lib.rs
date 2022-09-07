@@ -14,6 +14,9 @@ pub mod crypto;
 /// Steganography module containing different implementations of encoding methods.
 pub mod steganography;
 
+/// Image API contains an HTTP client to fetch images from a remote API
+pub mod image_api;
+
 use thiserror::Error;
 #[derive(Error, Debug, PartialEq)]
 pub enum StegError {
