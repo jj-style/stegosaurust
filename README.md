@@ -38,6 +38,18 @@ SUBCOMMANDS:
     help        Prints this message or the help of the given subcommand(s)
 ```
 
+## Features
+Encoding supports a variety of options that effect how the data is encoded, including:
+- compression
+- base64 encoding
+- encryption using AES-256-CBC, requires `key` to be supplied
+- bit distribution - how to distribute encoded bits throughout the image used for encoding
+  - `sequential` - encode the data pixel by pixel starting from the top left
+  - `linear` - encode the data into pixels evenly spread out from the start to the end of all pixels
+- bit encoding methods:
+  - least significant bit (`lsb`) - always encode the bit of data in the least significant bit of each colour value of each pixel 
+  - random significant bit (`rsb`) - randomly encode each bit of data into one the least `n` significant bits of each colour value of each pixel. Choose how large `n` can be (1-4) (least significant to fourth least significant) and supply a `seed` which is used to determine the bit to encode into
+
 # Installation
 ## From crates.io
 ```bash
