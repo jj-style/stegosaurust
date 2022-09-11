@@ -11,10 +11,15 @@ pub struct Opt {
 
 #[derive(StructOpt)]
 pub enum Command {
-    #[structopt(name = "enc", about = "encode files using steganography")]
+    #[structopt(
+        name = "encode",
+        visible_alias = "enc",
+        about = "encode files using steganography"
+    )]
     Encode(Encode),
     #[structopt(
         name = "disguise",
+        visible_alias = "dsg",
         about = "mask all files in a directory using steganography"
     )]
     Disguise(Disguise),

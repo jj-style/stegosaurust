@@ -11,7 +11,6 @@ use crate::StegError;
 
 const END: &[u8] = b"$T3G";
 
-
 /// Behaviour to encode a message into an image and decode the message back out
 pub trait Steganography {
     /// Encodes a message into an image

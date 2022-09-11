@@ -1,6 +1,6 @@
 use std::fs::{DirEntry, File};
-use std::io::{stdin, stdout, Read, Write, Cursor};
-use std::path::{PathBuf};
+use std::io::{stdin, stdout, Cursor, Read, Write};
+use std::path::PathBuf;
 
 use anyhow::{bail, Context, Result};
 use atty::Stream;
@@ -12,7 +12,7 @@ use tabled::Table;
 use crate::cli;
 use crate::compress::{compress, decompress};
 use crate::crypto;
-use crate::steganography::{encoder_from_opts};
+use crate::steganography::encoder_from_opts;
 use crate::StegError;
 
 use crate::image_api::{self, ImageApi};
@@ -237,17 +237,25 @@ fn disguise(opt: cli::Disguise) -> Result<()> {
                 ));
                 new_fname.set_extension("png");
 
-                debug!(
-                    "encoding {} ==> {}",
-                    path.display(),
-                    new_fname.display()
-                );
+                debug!("encoding {} ==> {}", path.display(), new_fname.display());
 
                 let bytes_to_mask = path.metadata()?.len();
-                let width_of_img_to_request = image_api::get_square_image_width_from_bytes(bytes_to_mask as usize);
-                let img_mask = image_client.get_square_image(width_of_img_to_request).unwrap();
-               
-                let mask = ImageReader::new(Cursor::new(img_mask)).with_guessed_format()?.decode()?.into_rgb8();
+                let width_of_img_to_request =
+                    image_api::get_square_image_width_from_bytes(bytes_to_mask as usize);
+
+                let mask = match image_client.get_square_image(width_of_img_to_request) {
+                    Ok(data) => ImageReader::new(Cursor::new(data))
+                        .with_guessed_format()?
+                        .decode()?
+                        .into_rgb8(),
+                    Err(err) => {
+                        error!(
+                            "fetching image from api width={} | {:?}",
+                            width_of_img_to_request, err
+                        );
+                        continue;
+                    }
+                };
 
                 match encode(
                     cli::Encode {
@@ -255,9 +263,9 @@ fn disguise(opt: cli::Disguise) -> Result<()> {
                         opts: opt.opts.clone(),
                         input: Some(dirent.path()), // what to hide
                         output: Some(new_fname),    // where to hide
-                        image: PathBuf::new(), // image to hide in
+                        image: PathBuf::new(),      // not used as calling `encode` directly
                     },
-                    mask,
+                    mask, // image to hide in
                 ) {
                     Ok(_) => std::fs::remove_file(dirent.path())?,
                     Err(err) => {

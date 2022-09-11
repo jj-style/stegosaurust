@@ -1,5 +1,6 @@
 use reqwest;
 use reqwest::blocking::Client;
+use reqwest::header::USER_AGENT;
 use std::error::Error;
 
 pub trait ImageApi {
@@ -8,35 +9,56 @@ pub trait ImageApi {
 
 pub struct PicsumClient {
     http_client: Client,
-    base_url: String
+    base_url: String,
 }
 
 impl PicsumClient {
     pub fn new() -> Self {
         PicsumClient {
             http_client: Client::new(),
-            base_url: String::from("https://picsum.photos")
+            base_url: String::from("https://picsum.photos"),
         }
     }
 }
 
 impl ImageApi for PicsumClient {
     fn get_square_image(&self, width: usize) -> Result<Vec<u8>, Box<dyn Error>> {
-        println!("{width}");
-        let request_url = format!("{}/{}",self.base_url,width);
-        let response = self.http_client.get(request_url).send()?.bytes()?;
-        let bytes = response.to_vec();
-        Ok(bytes)
+        let request_url = format!("{}/{}", self.base_url, width);
+        let response = self
+            .http_client
+            .get(request_url)
+            .header(
+                USER_AGENT,
+                "Mozilla/5.0 (Windows NT 10.0; rv:91.0) Gecko/20100101 Firefox/91.0",
+            )
+            .send()?;
+        if response.status().is_success() {
+            let bytes = response.bytes()?.to_vec();
+            Ok(bytes)
+        } else {
+            Err(Box::from(format!(
+                "{}:{}",
+                response.status().as_str(),
+                response.text()?
+            )))
+        }
     }
 }
 
 pub fn get_square_image_width_from_bytes(length: usize) -> usize {
-    // w * 2 * 3 / 8 = max_len
-    // (len * 8) / 3 / 2  = w
-    // TODO - fix/implement this
-    // ((length * 8) as f64 / 6_f64).ceil() as usize
-    4096
-    
+    let min = 200;
+    let max = 5000;
+    let width = ((length * 8) as f64 / 3_f64).sqrt() as usize * 2;
+    match width.cmp(&min) {
+        std::cmp::Ordering::Less | std::cmp::Ordering::Equal => min,
+        std::cmp::Ordering::Greater => {
+            if width <= max {
+                width
+            } else {
+                max
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -55,8 +77,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn test_get_square_image_width_from_bytes() {
-        assert_eq!(get_square_image_width_from_bytes(100), 800)
+        assert_eq!(get_square_image_width_from_bytes(100), 200)
     }
 }
