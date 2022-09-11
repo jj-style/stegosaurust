@@ -18,7 +18,7 @@ pub mod steganography;
 pub mod image_api;
 
 use thiserror::Error;
-#[derive(Error, Debug, PartialEq)]
+#[derive(Error, Debug, Eq, PartialEq)]
 pub enum StegError {
     #[error("Encoded message not found in data")]
     EncodingNotFound,
@@ -34,7 +34,7 @@ pub enum StegError {
     Unknown,
 }
 
-#[derive(Error, Debug, PartialEq)]
+#[derive(Error, Debug, Eq, PartialEq)]
 pub enum CryptoError {
     #[error("Failed to get random salt")]
     Salt,

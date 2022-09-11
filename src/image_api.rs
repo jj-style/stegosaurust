@@ -21,6 +21,12 @@ impl PicsumClient {
     }
 }
 
+impl std::default::Default for PicsumClient {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ImageApi for PicsumClient {
     fn get_square_image(&self, width: usize) -> Result<Vec<u8>, Box<dyn Error>> {
         let request_url = format!("{}/{}", self.base_url, width);
