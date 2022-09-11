@@ -2,6 +2,8 @@
 
 ## [Unreleased] - ReleaseDate
 
+## [0.4.3] - 2022-09-11
+
 ## Added
 - ~~when running `disguise` subcommand, if masking asset can't fit the file inside, all assets are tried in turn until one is found that fits, otherwise it gives up.~~
 - Integrate `disguise` command with HTTP client to pull images on the fly for masking
@@ -69,7 +71,8 @@
   - release binaries to github
 
 <!-- next-url -->
-[Unreleased]: https://github.com/jj-style/stegosaurust/compare/v0.4.2...HEAD
+[Unreleased]: https://github.com/jj-style/stegosaurust/compare/v0.4.3...HEAD
+[0.4.3]: https://github.com/jj-style/stegosaurust/compare/v0.4.2...v0.4.3
 [0.4.2]: https://github.com/jj-style/stegosaurust/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/jj-style/stegosaurust/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/jj-style/stegosaurust/compare/v0.3.1...v0.4.0
