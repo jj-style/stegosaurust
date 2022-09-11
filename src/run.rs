@@ -1,6 +1,6 @@
 use std::fs::{DirEntry, File};
-use std::io::{stdin, stdout, Read, Write};
-use std::path::{Path, PathBuf};
+use std::io::{stdin, stdout, Cursor, Read, Write};
+use std::path::PathBuf;
 
 use anyhow::{bail, Context, Result};
 use atty::Stream;
@@ -12,8 +12,10 @@ use tabled::Table;
 use crate::cli;
 use crate::compress::{compress, decompress};
 use crate::crypto;
-use crate::steganography::{encoder_from_opts, DisguiseAssets};
+use crate::steganography::encoder_from_opts;
 use crate::StegError;
+
+use crate::image_api::{self, ImageApi};
 
 fn load_rgb8_img(path: &PathBuf) -> Result<image::RgbImage> {
     let img = ImageReader::open(path)
@@ -216,11 +218,8 @@ fn disguise(opt: cli::Disguise) -> Result<()> {
             }
         }
     } else {
-        let assets = DisguiseAssets::iter()
-            .map(|a| a.to_string())
-            .collect::<Vec<String>>();
-        let mut assets = assets.iter().cycle(); // keep re-using the finite set of assets to encode each file in the target directory
-        'outer: for (_, dirent) in std::fs::read_dir(&opt.dir)
+        let image_client = image_api::PicsumClient::new();
+        for (_, dirent) in std::fs::read_dir(&opt.dir)
             .context(format!("reading {:?}", opt.dir))?
             .into_iter()
             .filter(|r| r.is_ok())
@@ -231,43 +230,6 @@ fn disguise(opt: cli::Disguise) -> Result<()> {
         {
             if dirent.path().is_file() {
                 let path = dirent.path();
-                // SAFETY: `assets.next()` will always yield `Some` result as the iter is cycled above
-                let mut next_asset = assets.next().unwrap();
-                let first_asset = next_asset.clone();
-                let (img_mask, mask) = loop {
-                    let img_mask = Path::new(next_asset);
-                    let asset_data = DisguiseAssets::get(img_mask.to_str().unwrap()).unwrap();
-                    let mask = ImageReader::new(std::io::Cursor::new(asset_data.data))
-                        .with_guessed_format()?
-                        .decode()
-                        .context("error reading image from embedded asset")?
-                        .into_rgb8();
-
-                    let data_to_hide = {
-                        let mut file = File::open(&path)
-                            .context(format!("failed to read {}", path.to_str().unwrap()))?;
-                        let mut buffer = Vec::new();
-                        file.read_to_end(&mut buffer)?;
-                        buffer
-                    };
-
-                    let encoder = encoder_from_opts(opt.opts.clone());
-
-                    // check asset can fit file within, if not try next, or skip file if tried them all
-                    if encoder.max_len(&mask) < data_to_hide.len() {
-                        debug!("{} too small to mask {}", next_asset, path.display());
-                        next_asset = assets.next().unwrap();
-                        if *next_asset == first_asset {
-                            debug!(
-                                "no asset large enough to mask {}. Skipping file",
-                                path.display()
-                            );
-                            continue 'outer;
-                        }
-                        continue;
-                    }
-                    break (img_mask, mask);
-                };
 
                 let mut new_fname: PathBuf = dirent.path().clone();
                 new_fname.set_file_name(base64::encode(
@@ -275,12 +237,25 @@ fn disguise(opt: cli::Disguise) -> Result<()> {
                 ));
                 new_fname.set_extension("png");
 
-                debug!(
-                    "encoding {} with {} ==> {}",
-                    path.display(),
-                    img_mask.display(),
-                    new_fname.display()
-                );
+                debug!("encoding {} ==> {}", path.display(), new_fname.display());
+
+                let bytes_to_mask = path.metadata()?.len();
+                let width_of_img_to_request =
+                    image_api::get_square_image_width_from_bytes(bytes_to_mask as usize);
+
+                let mask = match image_client.get_square_image(width_of_img_to_request) {
+                    Ok(data) => ImageReader::new(Cursor::new(data))
+                        .with_guessed_format()?
+                        .decode()?
+                        .into_rgb8(),
+                    Err(err) => {
+                        error!(
+                            "fetching image from api width={} | {:?}",
+                            width_of_img_to_request, err
+                        );
+                        continue;
+                    }
+                };
 
                 match encode(
                     cli::Encode {
@@ -288,9 +263,9 @@ fn disguise(opt: cli::Disguise) -> Result<()> {
                         opts: opt.opts.clone(),
                         input: Some(dirent.path()), // what to hide
                         output: Some(new_fname),    // where to hide
-                        image: img_mask.to_owned(), // image to hide in
+                        image: PathBuf::new(),      // not used as calling `encode` directly
                     },
-                    mask,
+                    mask, // image to hide in
                 ) {
                     Ok(_) => std::fs::remove_file(dirent.path())?,
                     Err(err) => {

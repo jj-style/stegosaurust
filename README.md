@@ -33,8 +33,8 @@ FLAGS:
     -V, --version    Prints version information
 
 SUBCOMMANDS:
-    disguise    mask all files in a directory using steganography
-    enc         encode files using steganography
+    disguise    mask all files in a directory using steganography [aliases: dsg]
+    encode      encode files using steganography [aliases: enc]
     help        Prints this message or the help of the given subcommand(s)
 ```
 

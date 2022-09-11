@@ -3,7 +3,9 @@
 ## [Unreleased] - ReleaseDate
 
 ## Added
-- when running `disguise` subcommand, if masking asset can't fit the file inside, all assets are tried in turn until one is found that fits, otherwise it gives up.
+- ~~when running `disguise` subcommand, if masking asset can't fit the file inside, all assets are tried in turn until one is found that fits, otherwise it gives up.~~
+- Integrate `disguise` command with HTTP client to pull images on the fly for masking
+- Aliases for main cli commands (`enc=encode`, `dsg=disguise`)
 
 ## Fixed
 - don't panic when attempting to decrypt a message that wasn't encrypted to begin with

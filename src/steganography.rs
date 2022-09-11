@@ -3,7 +3,6 @@ use itertools_num::linspace;
 use rand::Rng;
 use rand_pcg::Pcg64;
 use rand_seeder::Seeder;
-use rust_embed::RustEmbed;
 use std::convert::From;
 use std::fmt::Write;
 
@@ -11,12 +10,6 @@ use crate::cli::{BitDistribution, EncodeOpts, StegMethod};
 use crate::StegError;
 
 const END: &[u8] = b"$T3G";
-
-#[derive(RustEmbed, Clone)]
-#[folder = "assets/images"]
-#[prefix = "assets/images/"]
-#[include = "*.jpg"]
-pub struct DisguiseAssets;
 
 /// Behaviour to encode a message into an image and decode the message back out
 pub trait Steganography {
