@@ -1,0 +1,24 @@
+[package]
+name = "stegosaurust_cli"
+description = "A steganography tool, written in rust."
+authors = ["JJ Style <style.jj@pm.me>"]
+version = "0.4.4"
+edition = "2021"
+readme = "../README.md"
+license = "GPL-3.0"
+repository = "https://github.com/jj-style/stegosaurust"
+homepage = "https://github.com/jj-style/stegosaurust"
+documentation = "https://docs.rs/stegosaurust"
+keywords = ["steganography","secrets","hide","image"]
+
+[dependencies]
+stegosaurust ={ path = ".."}
+structopt = "0.3"
+log = "0.4.6"
+env_logger = "0.9.0"
+anyhow = "1.0.57"
+atty = "0.2"
+pretty-bytes = "0.2.2"
+tabled = "0.7.0"
+image = "0.23.14"
+base64 = "0.13.0"

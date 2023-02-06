@@ -1,5 +1,8 @@
-use stegosaurust::{cli, run};
+use stegosaurust::{cli};
 use structopt::StructOpt;
+
+mod run;
+use run::run;
 
 extern crate env_logger;
 

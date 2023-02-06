@@ -10,12 +10,11 @@ use pretty_bytes::converter::convert;
 use tabled::Table;
 
 use crate::cli;
-use crate::compress::{compress, decompress};
-use crate::crypto;
-use crate::steganography::encoder_from_opts;
-use crate::StegError;
-
-use crate::image_api::{self, ImageApi};
+use stegosaurust::compress::{compress, decompress};
+use stegosaurust::crypto;
+use stegosaurust::steganography::encoder_from_opts;
+use stegosaurust::StegError;
+use stegosaurust::image_api::{self, ImageApi};
 
 fn load_rgb8_img(path: &PathBuf) -> Result<image::RgbImage> {
     let img = ImageReader::open(path)

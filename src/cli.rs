@@ -93,7 +93,7 @@ pub struct EncodeOpts {
 }
 
 /// Supported steganography encoding algorithms
-#[derive(StructOpt, Debug, Clone, Copy)]
+#[derive(StructOpt, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StegMethod {
     /// Least significant bit encoding
     ///
@@ -124,14 +124,32 @@ impl Default for StegMethod {
     }
 }
 
+impl std::fmt::Display for StegMethod {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                StegMethod::LeastSignificantBit => "Least Significant Bit",
+                StegMethod::RandomSignificantBit => "Random Significant Bit",
+            }
+        )
+    }
+}
+
 impl StegMethod {
+    pub const ALL: [StegMethod; 2] = [
+        StegMethod::LeastSignificantBit,
+        StegMethod::RandomSignificantBit,
+    ];
+
     fn variants() -> [&'static str; 2] {
         ["lsb", "rsb"]
     }
 }
 
 /// Supported bit encoding bit distribution methods
-#[derive(StructOpt, Debug, Clone)]
+#[derive(StructOpt, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BitDistribution {
     /// Encode bits sequentially into the image starting from top-left
     Sequential,
@@ -166,4 +184,20 @@ impl Default for BitDistribution {
     fn default() -> Self {
         BitDistribution::Sequential
     }
+}
+impl std::fmt::Display for BitDistribution {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                BitDistribution::Sequential => "Sequential".to_string(),
+                BitDistribution::Linear { length } => format!("{}-Linear", length),
+            }
+        )
+    }
+}
+
+impl BitDistribution {
+    pub const ALL: [BitDistribution; 2] = [BitDistribution::Sequential, BitDistribution::Linear { length: 0 }];
 }

@@ -1,0 +1,18 @@
+[package]
+name = "stegosaurust_ui"
+description = "UI for stegosaurust."
+authors = ["JJ Style <style.jj@pm.me>"]
+version = "0.0.1"
+edition = "2021"
+readme = "../README.md"
+license = "GPL-3.0"
+repository = "https://github.com/jj-style/stegosaurust"
+homepage = "https://github.com/jj-style/stegosaurust"
+documentation = "https://docs.rs/stegosaurust"
+keywords = ["steganography","secrets","hide","image"]
+
+
+[dependencies]
+stegosaurust ={ path = ".." }
+iced ={ version = "0.7.0" }
+native-dialog = "0.6.3"
