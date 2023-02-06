@@ -1,4 +1,4 @@
-use stegosaurust::{cli};
+use stegosaurust::cli;
 use structopt::StructOpt;
 
 mod run;

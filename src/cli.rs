@@ -191,13 +191,16 @@ impl std::fmt::Display for BitDistribution {
             f,
             "{}",
             match self {
-                BitDistribution::Sequential => "Sequential".to_string(),
-                BitDistribution::Linear { length } => format!("{}-Linear", length),
+                BitDistribution::Sequential => "Sequential",
+                BitDistribution::Linear { .. } => "Linear",
             }
         )
     }
 }
 
 impl BitDistribution {
-    pub const ALL: [BitDistribution; 2] = [BitDistribution::Sequential, BitDistribution::Linear { length: 0 }];
+    pub const ALL: [BitDistribution; 2] = [
+        BitDistribution::Sequential,
+        BitDistribution::Linear { length: 0 },
+    ];
 }

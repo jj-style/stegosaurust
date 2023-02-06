@@ -1,29 +1,57 @@
 use std::path::PathBuf;
 
-use stegosaurust::cli::{Encode, EncodeOpts, StegMethod, BitDistribution};
-use iced::{Sandbox, Settings};
-use iced::widget::{self, column, container, image, row, text, button, pick_list};
-use iced::{
-    Alignment, Color, Command, Element, Length, Theme,
+use iced::widget::{
+    self, button, checkbox, column, container, image, pick_list, radio, row, slider, text,
 };
-use native_dialog::{FileDialog};
+use iced::{Alignment, Color, Command, Element, Length, Theme};
+use iced::{Sandbox, Settings};
+use native_dialog::FileDialog;
+use stegosaurust::cli::{BitDistribution, Encode, EncodeOpts, StegMethod};
 
 struct Data(Encode);
 
 fn main() -> iced::Result {
     let mut settings = Settings::default();
     let mut window = iced::window::Settings::default();
-    window.size = (300,300);
+    window.size = (500, 300);
     settings.window = window;
     Data::run(settings)
 }
-
 
 #[derive(Debug, Clone)]
 enum Message {
     ChooseMask,
     EncMethodSelected(StegMethod),
-    BitDistSelected(BitDistribution)
+    BitDistSelected(BitDistribution),
+    LinearDistStepChanged(u8),
+    ToggleBase64(bool),
+    ToggleCompression(bool),
+    FunctionChanged(Function),
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+enum Function {
+    Encode,
+    Decode,
+}
+
+impl From<bool> for Function {
+    fn from(b: bool) -> Self {
+        if b {
+            Function::Decode
+        } else {
+            Function::Encode
+        }
+    }
+}
+
+impl Into<bool> for Function {
+    fn into(self) -> bool {
+        match self {
+            Function::Encode => false,
+            Function::Decode => true,
+        }
+    }
 }
 
 impl Sandbox for Data {
@@ -69,12 +97,16 @@ impl Sandbox for Data {
 
                 self.0.image = path
             }
-            Message::EncMethodSelected(method) => {
-                self.0.opts.method = Some(method)
-            },
-            Message::BitDistSelected(dist) => {
-                self.0.opts.distribution = Some(dist)
+            Message::EncMethodSelected(method) => self.0.opts.method = Some(method),
+            Message::BitDistSelected(dist) => self.0.opts.distribution = Some(dist),
+            Message::LinearDistStepChanged(step) => {
+                self.0.opts.distribution = Some(BitDistribution::Linear {
+                    length: step as usize,
+                })
             }
+            Message::ToggleBase64(status) => self.0.opts.base64 = status,
+            Message::ToggleCompression(status) => self.0.opts.compress = status,
+            Message::FunctionChanged(function) => self.0.opts.decode = function.into(),
         }
     }
 
@@ -93,19 +125,47 @@ impl Sandbox for Data {
         )
         .placeholder("Select bit distribution");
 
+        let choose_function =
+            [Function::Encode, Function::Decode]
+                .iter()
+                .fold(column![], |column, f| {
+                    column.push(radio(
+                        format!("{f:?}"),
+                        *f,
+                        Some(Function::from(self.0.opts.decode)),
+                        Message::FunctionChanged,
+                    ))
+                });
+
+        let bit_dist_container = match (self.0.opts.distribution, self.0.opts.decode) {
+            (Some(BitDistribution::Linear { length }), true) => {
+                let picker_row = row![text("Bit distribution"), pick_bit_dist];
+                let bit_dist_row = row![
+                    text(format!("Distribution key: {}", length)),
+                    slider(1..=100, length as u8, Message::LinearDistStepChanged)
+                ]
+                .spacing(10);
+                container(column![picker_row, bit_dist_row])
+            }
+            _ => container(row![text("Bit distribution"), pick_bit_dist]),
+        };
+
         let content = column![
             row![
-                text(if self.validate_selected_img_mask() {format!("{:?}", self.0.image)} else {"Image mask".to_string()}),
+                text(if self.validate_selected_img_mask() {
+                    format!("{:?}", self.0.image)
+                } else {
+                    "Image mask".to_string()
+                }),
                 button("pick file").on_press(Message::ChooseMask),
             ],
+            row![text("Encoding method"), pick_enc_method],
+            bit_dist_container,
             row![
-                text("Encoding method"),
-                pick_enc_method
+                checkbox("base64", self.0.opts.base64, Message::ToggleBase64),
+                checkbox("compress", self.0.opts.compress, Message::ToggleCompression)
             ],
-            row![
-                text("Bit distribution"),
-                pick_bit_dist
-            ]
+            row![choose_function]
         ];
 
         container(content)
@@ -123,4 +183,3 @@ impl Data {
         p.exists()
     }
 }
-
