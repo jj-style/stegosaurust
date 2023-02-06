@@ -1,3 +1,6 @@
+// TODO - remove at some point
+#![allow(unused_imports)]
+
 use std::path::PathBuf;
 
 use iced::widget::{
