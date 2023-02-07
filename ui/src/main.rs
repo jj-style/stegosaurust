@@ -4,7 +4,7 @@
 use std::path::PathBuf;
 
 use iced::widget::{
-    self, button, checkbox, column, container, image, pick_list, radio, row, slider, text,
+    self, button, checkbox, column, container, image, pick_list, radio, row, text, text_input,
 };
 use iced::{Alignment, Color, Command, Element, Length, Theme};
 use iced::{Sandbox, Settings};
@@ -26,10 +26,11 @@ enum Message {
     ChooseMask,
     EncMethodSelected(StegMethod),
     BitDistSelected(BitDistribution),
-    LinearDistStepChanged(u8),
+    LinearDistStepChanged(String),
     ToggleBase64(bool),
     ToggleCompression(bool),
     FunctionChanged(Function),
+    RsbSeedChanged(String),
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -103,13 +104,14 @@ impl Sandbox for Data {
             Message::EncMethodSelected(method) => self.0.opts.method = Some(method),
             Message::BitDistSelected(dist) => self.0.opts.distribution = Some(dist),
             Message::LinearDistStepChanged(step) => {
-                self.0.opts.distribution = Some(BitDistribution::Linear {
-                    length: step as usize,
-                })
+                if let Ok(parsed) = step.parse::<usize>() {
+                    self.0.opts.distribution = Some(BitDistribution::Linear { length: parsed })
+                }
             }
             Message::ToggleBase64(status) => self.0.opts.base64 = status,
             Message::ToggleCompression(status) => self.0.opts.compress = status,
             Message::FunctionChanged(function) => self.0.opts.decode = function.into(),
+            Message::RsbSeedChanged(seed) => self.0.opts.seed = Some(seed),
         }
     }
 
@@ -120,6 +122,27 @@ impl Sandbox for Data {
             Message::EncMethodSelected,
         )
         .placeholder("Select encoding method");
+
+        let enc_method_container = match self.0.opts.method.unwrap() {
+            StegMethod::LeastSignificantBit => container(pick_enc_method),
+            StegMethod::RandomSignificantBit => {
+                let current_seed = match self.0.opts.seed {
+                    Some(ref s) => s,
+                    None => "",
+                };
+                container(column![
+                    row![pick_enc_method],
+                    row![
+                        column![text("Seed")],
+                        column![text_input(
+                            "enter seed to random bit distribution",
+                            current_seed,
+                            Message::RsbSeedChanged
+                        )]
+                    ]
+                ])
+            }
+        };
 
         let pick_bit_dist = pick_list(
             &BitDistribution::ALL[..],
@@ -144,8 +167,8 @@ impl Sandbox for Data {
             (Some(BitDistribution::Linear { length }), true) => {
                 let picker_row = row![text("Bit distribution"), pick_bit_dist];
                 let bit_dist_row = row![
-                    text(format!("Distribution key: {}", length)),
-                    slider(1..=100, length as u8, Message::LinearDistStepChanged)
+                    text("Distribution key"),
+                    text_input("", &length.to_string(), Message::LinearDistStepChanged)
                 ]
                 .spacing(10);
                 container(column![picker_row, bit_dist_row])
@@ -162,7 +185,7 @@ impl Sandbox for Data {
                 }),
                 button("pick file").on_press(Message::ChooseMask),
             ],
-            row![text("Encoding method"), pick_enc_method],
+            row![text("Encoding method"), enc_method_container],
             bit_dist_container,
             row![
                 checkbox("base64", self.0.opts.base64, Message::ToggleBase64),
@@ -184,5 +207,26 @@ impl Data {
     fn validate_selected_img_mask(&self) -> bool {
         let p = &self.0.image;
         p.exists()
+    }
+
+    fn validate_state(&self) -> Result<(), &'static str> {
+        if let Some(BitDistribution::Linear { length }) = self.0.opts.distribution {
+            if self.0.opts.decode {
+                if length < 1 {
+                    return Err(
+                        "Linear bit distribution length must be greater than or equal to 1.",
+                    );
+                }
+            }
+        }
+        if let Some(StegMethod::RandomSignificantBit) = self.0.opts.method {
+            if self.0.opts.seed.as_ref().map_or(true, |s| s.is_empty()) {
+                return Err(
+                    "Seed cannot be empty when random significant bit encoding is selected",
+                );
+            }
+        }
+
+        Ok(())
     }
 }
