@@ -4,13 +4,14 @@
 use std::path::PathBuf;
 
 use iced::widget::{
-    self, button, checkbox, column, container, image, pick_list, radio, row, text, text_input,
+    self, button, checkbox, column, container, image, pick_list, radio, row, svg, text, text_input,
 };
 use iced::{Alignment, Color, Command, Element, Length, Theme};
 use iced::{Sandbox, Settings};
 use native_dialog::FileDialog;
 use stegosaurust::cli::{BitDistribution, Encode, EncodeOpts, StegMethod};
 
+#[derive(Debug, Clone)]
 struct Data(Encode);
 
 fn main() -> iced::Result {
@@ -29,9 +30,12 @@ enum Message {
     LinearDistStepChanged(String),
     ToggleBase64(bool),
     ToggleCompression(bool),
+    ToggleEncryption(bool),
     FunctionChanged(Function),
     RsbSeedChanged(String),
     RsbMaxBitChanged(u8),
+    EncryptionKeyChanged(String),
+    Submit,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -111,9 +115,25 @@ impl Sandbox for Data {
             }
             Message::ToggleBase64(status) => self.0.opts.base64 = status,
             Message::ToggleCompression(status) => self.0.opts.compress = status,
+            Message::ToggleEncryption(status) => {
+                self.0.opts.key = if status { Some("".to_string()) } else { None }
+            }
             Message::FunctionChanged(function) => self.0.opts.decode = function.into(),
             Message::RsbSeedChanged(seed) => self.0.opts.seed = Some(seed),
             Message::RsbMaxBitChanged(max_bit) => self.0.opts.max_bit = Some(max_bit),
+            Message::EncryptionKeyChanged(key) => self.0.opts.key = Some(key),
+            Message::Submit => {
+                // TODO - popup or notify UI of any warnings
+                self.validate_state().unwrap();
+                self.0.input = Some(PathBuf::from("/ramdisk/test.txt"));
+                self.0.output = Some(PathBuf::from("/ramdisk/output.png"));
+                let cli_opts = stegosaurust::cli::Opt {
+                    cmd: stegosaurust::cli::Command::Encode(self.0.clone()),
+                };
+                stegosaurust_cli::run(cli_opts).unwrap()
+                // TODO - update state to show image on success
+                // -- maybe have state enum (inputStep,executeStep,inputWithResultStep (show image))
+            }
         }
     }
 
@@ -186,6 +206,22 @@ impl Sandbox for Data {
             _ => container(row![text("Bit distribution"), pick_bit_dist]),
         };
 
+        let encrypt_cb = checkbox(
+            "encrypt",
+            self.0.opts.key.is_some(),
+            Message::ToggleEncryption,
+        );
+
+        let encrypt_container = match &self.0.opts.key {
+            Some(k) => {
+                row![
+                    encrypt_cb,
+                    text_input("", k, Message::EncryptionKeyChanged).password()
+                ]
+            }
+            None => row![encrypt_cb],
+        };
+
         let content = column![
             row![
                 text(if self.validate_selected_img_mask() {
@@ -199,9 +235,11 @@ impl Sandbox for Data {
             bit_dist_container,
             row![
                 checkbox("base64", self.0.opts.base64, Message::ToggleBase64),
-                checkbox("compress", self.0.opts.compress, Message::ToggleCompression)
+                checkbox("compress", self.0.opts.compress, Message::ToggleCompression),
+                encrypt_container,
             ],
-            row![choose_function]
+            row![choose_function],
+            row![button("submit").on_press(Message::Submit)]
         ];
 
         container(content)
@@ -234,6 +272,11 @@ impl Data {
                 return Err(
                     "Seed cannot be empty when random significant bit encoding is selected",
                 );
+            }
+        }
+        if let Some(ref key) = self.0.opts.key {
+            if key.is_empty() {
+                return Err("Encyrption key cannot be empty if encryption is enabled");
             }
         }
 

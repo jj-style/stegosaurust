@@ -25,7 +25,7 @@ pub enum Command {
     Disguise(Disguise),
 }
 
-#[derive(StructOpt)]
+#[derive(StructOpt, Debug, Clone)]
 pub struct Encode {
     #[structopt(flatten)]
     pub opts: EncodeOpts,
@@ -57,7 +57,7 @@ pub struct Disguise {
     pub dir: PathBuf,
 }
 
-#[derive(StructOpt, Clone)]
+#[derive(StructOpt, Debug, Clone)]
 pub struct EncodeOpts {
     /// Decode a message from the image
     #[structopt(short, long)]

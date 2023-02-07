@@ -9,7 +9,7 @@ use log::{debug, error, warn};
 use pretty_bytes::converter::convert;
 use tabled::Table;
 
-use crate::cli;
+use stegosaurust::cli;
 use stegosaurust::compress::{compress, decompress};
 use stegosaurust::crypto;
 use stegosaurust::image_api::{self, ImageApi};
