@@ -31,6 +31,7 @@ enum Message {
     ToggleCompression(bool),
     FunctionChanged(Function),
     RsbSeedChanged(String),
+    RsbMaxBitChanged(u8),
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -71,7 +72,7 @@ impl Sandbox for Data {
                 method: Some(StegMethod::default()),
                 distribution: Some(BitDistribution::default()),
                 seed: None,
-                max_bit: None,
+                max_bit: Some(2),
             },
             check_max_length: false,
             output: None,
@@ -112,6 +113,7 @@ impl Sandbox for Data {
             Message::ToggleCompression(status) => self.0.opts.compress = status,
             Message::FunctionChanged(function) => self.0.opts.decode = function.into(),
             Message::RsbSeedChanged(seed) => self.0.opts.seed = Some(seed),
+            Message::RsbMaxBitChanged(max_bit) => self.0.opts.max_bit = Some(max_bit),
         }
     }
 
@@ -138,6 +140,14 @@ impl Sandbox for Data {
                             "enter seed to random bit distribution",
                             current_seed,
                             Message::RsbSeedChanged
+                        )]
+                    ],
+                    row![
+                        column![text("Max bit")],
+                        column![pick_list(
+                            vec![1, 2, 3, 4],
+                            self.0.opts.max_bit,
+                            Message::RsbMaxBitChanged
                         )]
                     ]
                 ])
