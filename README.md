@@ -69,7 +69,7 @@ cargo uninstall stegosaurust
 
 ## Docker
 ```bash
-docker pull ghcr.io/stegosaurust
+docker pull ghcr.io/jj-style/stegosaurust:master
 docker run --rm -it -v $PWD:/data stegosaurust stegosaurust enc --decode /data/image.png
 ```
 
