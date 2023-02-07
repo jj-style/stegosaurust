@@ -19,8 +19,9 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: stable
+          toolchain: 1.65
           components: rustfmt
+          override: true
       - run: cargo fmt --all -- --check
 
   test:
@@ -32,7 +33,8 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: stable
+          toolchain: 1.65
+          override: true
       - run: cargo test --verbose
 
   lint:
@@ -44,8 +46,9 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: stable
+          toolchain: 1.65
           components: clippy
+          override: true
       - run: cargo clippy -- -D warnings
 
   build:
@@ -60,6 +63,7 @@ jobs:
       uses: actions-rs/toolchain@v1
       with:
         profile: minimal
-        toolchain: stable
+        toolchain: 1.65
+        override: true
     - run: cargo build --verbose
   

@@ -67,6 +67,12 @@ cargo install --path .
 cargo uninstall stegosaurust
 ```
 
+## Docker
+```bash
+docker pull ghcr.io/stegosaurust
+docker run --rm -it -v $PWD:/data stegosaurust stegosaurust enc --decode /data/image.png
+```
+
 # Examples
 The examples below assume you have installed the program ([see here](#installation)) and are in the repository directory (if not installed use `cargo run --` instead of `stegosaurust`).
 

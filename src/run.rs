@@ -162,9 +162,7 @@ fn disguise(opt: cli::Disguise) -> Result<()> {
         for (_, dirent) in std::fs::read_dir(&opt.dir)
             .context(format!("reading {:?}", opt.dir))?
             .into_iter()
-            .filter(|r| r.is_ok())
-            // SAFETY: since we only have the Ok variants from above `filter`
-            .map(|r| r.unwrap())
+            .filter_map(|r| r.ok())
             .filter(is_not_hidden)
             .enumerate()
         {
@@ -222,9 +220,7 @@ fn disguise(opt: cli::Disguise) -> Result<()> {
         for (_, dirent) in std::fs::read_dir(&opt.dir)
             .context(format!("reading {:?}", opt.dir))?
             .into_iter()
-            .filter(|r| r.is_ok())
-            // SAFETY: since we only have the Ok variants from above `filter`
-            .map(|r| r.unwrap())
+            .filter_map(|r| r.ok())
             .filter(is_not_hidden)
             .enumerate()
         {
