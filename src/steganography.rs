@@ -151,11 +151,7 @@ impl BitEncoding for Rsb {
     fn decode(&mut self, color_val: &u8) -> u8 {
         let mask = self.next_mask();
         let c = color_val & mask as u8;
-        if c > 0 {
-            1
-        } else {
-            0
-        }
+        u8::from(c > 0)
     }
 }
 
