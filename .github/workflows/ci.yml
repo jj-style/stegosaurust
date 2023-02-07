@@ -21,6 +21,7 @@ jobs:
           profile: minimal
           toolchain: 1.65
           components: rustfmt
+          override: true
       - run: cargo fmt --all -- --check
 
   test:
@@ -33,6 +34,7 @@ jobs:
         with:
           profile: minimal
           toolchain: 1.65
+          override: true
       - run: cargo test --verbose
 
   lint:
@@ -46,6 +48,7 @@ jobs:
           profile: minimal
           toolchain: 1.65
           components: clippy
+          override: true
       - run: cargo clippy -- -D warnings
 
   build:
@@ -61,5 +64,6 @@ jobs:
       with:
         profile: minimal
         toolchain: 1.65
+        override: true
     - run: cargo build --verbose
   
