@@ -8,6 +8,7 @@ help:
 	@echo "  clean"
 	@echo "  lint"
 	@echo "  fmt"
+	@echo "  checkfmt"
 
 .PHONY: all
 all: build
@@ -31,3 +32,7 @@ lint:
 .PHONY: fmt
 fmt:
 	@cargo fmt
+
+.PHONY: checkfmt
+checkfmt:
+	@cargo fmt --all -- --check
