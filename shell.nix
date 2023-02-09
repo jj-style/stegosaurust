@@ -4,7 +4,7 @@ https://discourse.nixos.org/t/how-can-i-set-up-my-rust-programming-environment/4
 */
 let
   rust_overlay = import (builtins.fetchTarball "https://github.com/oxalica/rust-overlay/archive/master.tar.gz");
-  pkgs = import <nixpkgs> { overlays = [ rust_overlay ]; };
+  pkgs = import (fetchTarball "https://github.com/NixOS/nixpkgs/archive/06278c77b5d162e62df170fec307e83f1812d94b.tar.gz") { overlays = [ rust_overlay ]; };
   #rustVersion = "latest";
   rustVersion = "1.65.0";
   rust = pkgs.rust-bin.stable.${rustVersion}.default.override {
