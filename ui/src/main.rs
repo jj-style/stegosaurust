@@ -1,15 +1,18 @@
 // TODO - remove at some point
 #![allow(unused_imports)]
 
+use std::fs::File;
 use std::path::PathBuf;
 
 use iced::widget::{
     self, button, checkbox, column, container, image, pick_list, radio, row, svg, text, text_input,
+    Image,
 };
 use iced::{Alignment, Color, Command, Element, Length, Theme};
 use iced::{Sandbox, Settings};
 use native_dialog::FileDialog;
 use stegosaurust::cli::{BitDistribution, Encode, EncodeOpts, StegMethod};
+use tempfile::NamedTempFile;
 
 #[derive(Debug, Clone)]
 struct Data(Encode);
@@ -36,6 +39,7 @@ enum Message {
     RsbMaxBitChanged(u8),
     EncryptionKeyChanged(String),
     Submit,
+    SaveImg,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -125,14 +129,28 @@ impl Sandbox for Data {
             Message::Submit => {
                 // TODO - popup or notify UI of any warnings
                 self.validate_state().unwrap();
+                let tempfile = NamedTempFile::new().unwrap();
                 self.0.input = Some(PathBuf::from("/ramdisk/test.txt"));
-                self.0.output = Some(PathBuf::from("/ramdisk/output.png"));
+                self.0.output = Some(
+                    tempfile
+                        .into_temp_path()
+                        .to_path_buf()
+                        .with_extension(".png"),
+                );
                 let cli_opts = stegosaurust::cli::Opt {
                     cmd: stegosaurust::cli::Command::Encode(self.0.clone()),
                 };
-                stegosaurust_cli::run(cli_opts).unwrap()
-                // TODO - update state to show image on success
-                // -- maybe have state enum (inputStep,executeStep,inputWithResultStep (show image))
+                stegosaurust_cli::run(cli_opts).unwrap();
+            }
+            Message::SaveImg => {
+                let selected_path = FileDialog::new()
+                    .set_location("~/Downloads")
+                    .add_filter("PNG Image", &["png"])
+                    .show_save_single_file()
+                    .unwrap();
+                if let Some(path) = selected_path {
+                    std::fs::copy(self.0.output.as_ref().unwrap(), path).unwrap();
+                }
             }
         }
     }
@@ -222,24 +240,37 @@ impl Sandbox for Data {
             None => row![encrypt_cb],
         };
 
-        let content = column![
-            row![
-                text(if self.validate_selected_img_mask() {
-                    format!("{:?}", self.0.image)
-                } else {
-                    "Image mask".to_string()
-                }),
-                button("pick file").on_press(Message::ChooseMask),
+        let img_container = self.0.output.as_ref().map_or_else(
+            || container(column![]),
+            |p| {
+                container(column![
+                    row![Image::new(p)],
+                    row![button("save").on_press(Message::SaveImg)],
+                ])
+            },
+        );
+
+        let content = row![
+            column![
+                row![
+                    text(if self.validate_selected_img_mask() {
+                        format!("{:?}", self.0.image)
+                    } else {
+                        "Image mask".to_string()
+                    }),
+                    button("pick file").on_press(Message::ChooseMask),
+                ],
+                row![text("Encoding method"), enc_method_container],
+                bit_dist_container,
+                row![
+                    checkbox("base64", self.0.opts.base64, Message::ToggleBase64),
+                    checkbox("compress", self.0.opts.compress, Message::ToggleCompression),
+                    encrypt_container,
+                ],
+                row![choose_function],
+                row![button("submit").on_press(Message::Submit)],
             ],
-            row![text("Encoding method"), enc_method_container],
-            bit_dist_container,
-            row![
-                checkbox("base64", self.0.opts.base64, Message::ToggleBase64),
-                checkbox("compress", self.0.opts.compress, Message::ToggleCompression),
-                encrypt_container,
-            ],
-            row![choose_function],
-            row![button("submit").on_press(Message::Submit)]
+            img_container
         ];
 
         container(content)

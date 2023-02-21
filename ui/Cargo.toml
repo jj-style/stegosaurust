@@ -15,5 +15,6 @@ keywords = ["steganography","secrets","hide","image"]
 [dependencies]
 stegosaurust ={ path = ".." }
 stegosaurust_cli ={ path = "../cli" }
-iced ={ version = "0.7.0" }
+iced = { version = "0.7.0", features = ["image"] }
 native-dialog = "0.6.3"
+tempfile = "3.3.0"
