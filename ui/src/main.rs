@@ -2,6 +2,7 @@
 #![allow(unused_imports)]
 
 use std::fs::File;
+use std::io::Write;
 use std::path::PathBuf;
 
 use iced::widget::{
@@ -14,13 +15,14 @@ use native_dialog::FileDialog;
 use stegosaurust::cli::{BitDistribution, Encode, EncodeOpts, StegMethod};
 use tempfile::NamedTempFile;
 
+// TODO - make better type for this rather than just a tuple
 #[derive(Debug, Clone)]
-struct Data(Encode);
+struct Data(Encode, String);
 
 fn main() -> iced::Result {
     let mut settings = Settings::default();
     let mut window = iced::window::Settings::default();
-    window.size = (500, 300);
+    window.size = (300, 500);
     settings.window = window;
     Data::run(settings)
 }
@@ -38,6 +40,7 @@ enum Message {
     RsbSeedChanged(String),
     RsbMaxBitChanged(u8),
     EncryptionKeyChanged(String),
+    InputOutput(String),
     Submit,
     SaveImg,
 }
@@ -71,22 +74,25 @@ impl Sandbox for Data {
     type Message = Message;
 
     fn new() -> Self {
-        Data(Encode {
-            opts: EncodeOpts {
-                decode: false,
-                base64: false,
-                compress: false,
-                key: None,
-                method: Some(StegMethod::default()),
-                distribution: Some(BitDistribution::default()),
-                seed: None,
-                max_bit: Some(2),
+        Data(
+            Encode {
+                opts: EncodeOpts {
+                    decode: false,
+                    base64: false,
+                    compress: false,
+                    key: None,
+                    method: Some(StegMethod::default()),
+                    distribution: Some(BitDistribution::default()),
+                    seed: None,
+                    max_bit: Some(2),
+                },
+                check_max_length: false,
+                output: None,
+                input: None,
+                image: PathBuf::new(),
             },
-            check_max_length: false,
-            output: None,
-            input: None,
-            image: PathBuf::new(),
-        })
+            "".to_string(),
+        )
     }
 
     fn title(&self) -> String {
@@ -129,18 +135,28 @@ impl Sandbox for Data {
             Message::Submit => {
                 // TODO - popup or notify UI of any warnings
                 self.validate_state().unwrap();
-                let tempfile = NamedTempFile::new().unwrap();
-                self.0.input = Some(PathBuf::from("/ramdisk/test.txt"));
+                let mut inputfile = NamedTempFile::new().unwrap();
+                write!(inputfile, "{}", self.1).unwrap();
+                self.0.input = Some(inputfile.path().to_path_buf());
+                println!("input: {:?}", self.0.input.as_ref().unwrap());
+
+                let outputfile = NamedTempFile::new().unwrap();
                 self.0.output = Some(
-                    tempfile
+                    outputfile
                         .into_temp_path()
                         .to_path_buf()
-                        .with_extension(".png"),
+                        .with_extension("png"),
                 );
+                println!("output: {:?}", self.0.output.as_ref().unwrap());
                 let cli_opts = stegosaurust::cli::Opt {
                     cmd: stegosaurust::cli::Command::Encode(self.0.clone()),
                 };
                 stegosaurust_cli::run(cli_opts).unwrap();
+                println!("finished");
+
+                // TODO - when decoding set input string to output:
+                // self.0.output = a temp text file 
+                //- self.1 = std::fs::read_to_string(self.0.output)
             }
             Message::SaveImg => {
                 let selected_path = FileDialog::new()
@@ -151,6 +167,9 @@ impl Sandbox for Data {
                 if let Some(path) = selected_path {
                     std::fs::copy(self.0.output.as_ref().unwrap(), path).unwrap();
                 }
+            }
+            Message::InputOutput(s) => {
+                self.1 = s;
             }
         }
     }
@@ -224,6 +243,8 @@ impl Sandbox for Data {
             _ => container(row![text("Bit distribution"), pick_bit_dist]),
         };
 
+        // TODO - tidy these container creations up a bit
+
         let encrypt_cb = checkbox(
             "encrypt",
             self.0.opts.key.is_some(),
@@ -240,18 +261,19 @@ impl Sandbox for Data {
             None => row![encrypt_cb],
         };
 
-        let img_container = self.0.output.as_ref().map_or_else(
-            || container(column![]),
+        let img_container = self.0.output.clone().map_or_else(
+            || column![],
             |p| {
-                container(column![
+                column![
                     row![Image::new(p)],
                     row![button("save").on_press(Message::SaveImg)],
-                ])
+                ]
             },
         );
 
         let content = row![
             column![
+                row![text_input("message", &self.1, Message::InputOutput)],
                 row![
                     text(if self.validate_selected_img_mask() {
                         format!("{:?}", self.0.image)
@@ -268,9 +290,10 @@ impl Sandbox for Data {
                     encrypt_container,
                 ],
                 row![choose_function],
+                // TODO - disable submit when not valid
                 row![button("submit").on_press(Message::Submit)],
-            ],
-            img_container
+                row![img_container]
+            ]
         ];
 
         container(content)
