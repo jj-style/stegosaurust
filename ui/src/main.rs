@@ -155,7 +155,7 @@ impl Sandbox for Data {
                 println!("finished");
 
                 // TODO - when decoding set input string to output:
-                // self.0.output = a temp text file 
+                // self.0.output = a temp text file
                 //- self.1 = std::fs::read_to_string(self.0.output)
             }
             Message::SaveImg => {
@@ -271,30 +271,28 @@ impl Sandbox for Data {
             },
         );
 
-        let content = row![
-            column![
-                row![text_input("message", &self.1, Message::InputOutput)],
-                row![
-                    text(if self.validate_selected_img_mask() {
-                        format!("{:?}", self.0.image)
-                    } else {
-                        "Image mask".to_string()
-                    }),
-                    button("pick file").on_press(Message::ChooseMask),
-                ],
-                row![text("Encoding method"), enc_method_container],
-                bit_dist_container,
-                row![
-                    checkbox("base64", self.0.opts.base64, Message::ToggleBase64),
-                    checkbox("compress", self.0.opts.compress, Message::ToggleCompression),
-                    encrypt_container,
-                ],
-                row![choose_function],
-                // TODO - disable submit when not valid
-                row![button("submit").on_press(Message::Submit)],
-                row![img_container]
-            ]
-        ];
+        let content = row![column![
+            row![text_input("message", &self.1, Message::InputOutput)],
+            row![
+                text(if self.validate_selected_img_mask() {
+                    format!("{:?}", self.0.image)
+                } else {
+                    "Image mask".to_string()
+                }),
+                button("pick file").on_press(Message::ChooseMask),
+            ],
+            row![text("Encoding method"), enc_method_container],
+            bit_dist_container,
+            row![
+                checkbox("base64", self.0.opts.base64, Message::ToggleBase64),
+                checkbox("compress", self.0.opts.compress, Message::ToggleCompression),
+                encrypt_container,
+            ],
+            row![choose_function],
+            // TODO - disable submit when not valid
+            row![button("submit").on_press(Message::Submit)],
+            row![img_container]
+        ]];
 
         container(content)
             .width(Length::Fill)
