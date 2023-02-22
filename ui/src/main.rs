@@ -73,6 +73,20 @@ impl Into<bool> for Function {
 impl Sandbox for Data {
     type Message = Message;
 
+    fn theme(&self) -> Theme {
+        Theme::custom(iced::theme::Palette {
+            background: Color::from_rgb(1.0, 0.9, 1.0),
+            text: Color::BLACK,
+            primary: Color::from_rgb(0.5, 0.5, 0.0),
+            success: Color::from_rgb(0.0, 1.0, 0.0),
+            danger: Color::from_rgb(1.0, 0.0, 0.0),
+        })
+    }
+
+    fn scale_factor(&self) -> f64 {
+        1.0
+    }
+
     fn new() -> Self {
         Data(
             Encode {
