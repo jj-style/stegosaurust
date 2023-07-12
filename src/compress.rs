@@ -1,30 +1,30 @@
-use crate::StegError;
+use crate::CompressionError;
 use compression::prelude::*;
 
 /// compress a slice of bytes into a new vec of bytes
-pub fn compress(data: &[u8]) -> Result<Vec<u8>, StegError> {
+pub fn compress(data: &[u8]) -> Result<Vec<u8>, CompressionError> {
     if data.is_empty() {
-        return Err(StegError::Compression("Input data is empty.".to_string()));
+        return Err(CompressionError::EmptyData);
     }
-    
+
     data.iter()
         .cloned()
         .encode(&mut BZip2Encoder::new(9), Action::Finish)
         .collect::<Result<Vec<_>, _>>()
-        .map_err(StegError::Compression)
+        .map_err(CompressionError::Compression)
 }
 
 /// decompress a slice of bytes into a new vec of bytes
-pub fn decompress(data: &[u8]) -> Result<Vec<u8>, StegError> {
+pub fn decompress(data: &[u8]) -> Result<Vec<u8>, CompressionError> {
     if data.is_empty() {
-        return Err(StegError::Decompression("Input data is empty.".to_string()));
+        return Err(CompressionError::EmptyData);
     }
-    
+
     data.iter()
         .cloned()
         .decode(&mut BZip2Decoder::new())
         .collect::<Result<Vec<_>, _>>()
-        .map_err(StegError::Decompression)
+        .map_err(CompressionError::Decompression)
 }
 
 #[cfg(test)]
@@ -44,12 +44,13 @@ mod tests {
         let output = compress(input.as_bytes()).unwrap();
         assert_eq!(decompress(&output).unwrap(), input.as_bytes());
     }
-    
+
     #[test]
     fn test_empty_input_compression() {
         let input = "";
         let output = compress(input.as_bytes());
         assert!(output.is_err());
+        assert_eq!(output.unwrap_err(), CompressionError::EmptyData);
     }
 
     #[test]
@@ -57,6 +58,6 @@ mod tests {
         let input = "";
         let output = decompress(input.as_bytes());
         assert!(output.is_err());
+        assert_eq!(output.unwrap_err(), CompressionError::EmptyData);
     }
 }
-
