@@ -74,7 +74,7 @@ fn encode(opt: cli::Encode, mask: image::RgbImage) -> Result<()> {
         }
 
         if opt.opts.compress {
-            result = decompress(&result)?;
+            result = decompress(&result).map_err(StegError::Compression)?;
         }
 
         if let Some(path) = opt.output {
@@ -117,7 +117,7 @@ fn encode(opt: cli::Encode, mask: image::RgbImage) -> Result<()> {
         // perform transformations if necessary, encrypt then encode
 
         if opt.opts.compress {
-            message = compress(&message)?;
+            message = compress(&message).map_err(StegError::Compression)?;
         }
 
         if let Some(key) = &opt.opts.key {

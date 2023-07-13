@@ -25,13 +25,21 @@ pub enum StegError {
     #[error("Error decoding message: `{0}`")]
     Decoding(String),
     #[error("Compression error")]
-    Compression(#[from] compression::prelude::CompressionError),
-    #[error("Decompression error")]
-    Decompression(#[from] compression::prelude::BZip2Error),
+    Compression(#[from] CompressionError),
     #[error("Encryption error")]
     Crypto(#[from] CryptoError),
     #[error("Unknown steganography error")]
     Unknown,
+}
+
+#[derive(Error, Debug, Eq, PartialEq)]
+pub enum CompressionError {
+    #[error("Compression error")]
+    Compression(#[from] compression::prelude::CompressionError),
+    #[error("Decompression error")]
+    Decompression(#[from] compression::prelude::BZip2Error),
+    #[error("empty data")]
+    EmptyData,
 }
 
 #[derive(Error, Debug, Eq, PartialEq)]
