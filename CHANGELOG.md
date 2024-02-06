@@ -2,6 +2,15 @@
 
 ## [Unreleased] - ReleaseDate
 
+## Fixed
+- check data is not empty before compressing/decompressing (#24)
+
+## Misc
+- s/make/just
+- use `just` in pipelines
+- cross compile binaries
+- upgrade to rust 1.73 
+
 ## [0.4.4] - 2022-09-11
 
 ## Added

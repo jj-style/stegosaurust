@@ -15,21 +15,17 @@ jobs:
     name: Publish to crates.io
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout sources
-        uses: actions/checkout@v3
-
-      - name: Install stable toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: 1.65
-          override: true
-
-      - run: cargo publish --token ${CRATES_TOKEN}
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo publish
         env:
-          CRATES_TOKEN: ${{ secrets.CRATES_IO_API_KEY }}
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_API_KEY }}
 
-  build-and-push-image:
+  publish-docker:
+    name: Publishing Docker
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -37,10 +33,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Log in to the Container registry
-        uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
+        uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -48,14 +44,120 @@ jobs:
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
-        uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
+        uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
       - name: Build and push Docker image
-        uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
+        uses: docker/build-push-action@v5
         with:
           context: .
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+
+  binaries:
+    name: Publishing binaries for "${{ matrix.job.os }}
+    runs-on: ${{ matrix.job.os }}
+    strategy:
+      matrix:
+        rust: [stable]
+        job:
+          - os: macos-latest
+            os-name: macos
+            target: x86_64-apple-darwin
+            architecture: x86_64
+            binary-postfix: ""
+            use-cross: false
+          - os: macos-latest
+            os-name: macos
+            target: aarch64-apple-darwin
+            architecture: arm64
+            binary-postfix: ""
+            use-cross: false
+          - os: ubuntu-latest
+            os-name: linux
+            target: x86_64-unknown-linux-gnu
+            architecture: x86_64
+            binary-postfix: ""
+            use-cross: false
+          - os: windows-latest
+            os-name: windows
+            target: x86_64-pc-windows-msvc
+            architecture: x86_64
+            binary-postfix: ".exe"
+            use-cross: false
+          - os: ubuntu-latest
+            os-name: linux
+            target: aarch64-unknown-linux-gnu
+            architecture: arm64
+            binary-postfix: ""
+            use-cross: true
+          - os: ubuntu-latest
+            os-name: linux
+            target: i686-unknown-linux-gnu
+            architecture: i686
+            binary-postfix: ""
+            use-cross: true
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust  }}
+          target: ${{ matrix.job.target }}
+          profile: minimal
+          override: true
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Cargo build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          use-cross: ${{ matrix.job.use-cross }}
+          toolchain: ${{ matrix.rust }}
+          args: --release --target ${{ matrix.job.target }}
+
+      - name: install strip command
+        shell: bash
+        run: |
+          if [[ ${{ matrix.job.target }} == aarch64-unknown-linux-gnu ]]; then
+              sudo apt update
+              sudo apt-get install -y binutils-aarch64-linux-gnu
+          fi
+      - name: Packaging final binary
+        shell: bash
+        run: |
+          cd "target/${{ matrix.job.target }}/release"
+
+          ####### reduce binary size by removing debug symbols #######
+          BINARY_NAME=stegosaurust${{ matrix.job.binary-postfix }}
+          if [[ ${{ matrix.job.target }} == aarch64-unknown-linux-gnu ]]; then
+            GCC_PREFIX="aarch64-linux-gnu-"
+          else
+            GCC_PREFIX=""
+          fi
+          "$GCC_PREFIX"strip $BINARY_NAME
+
+          ########## create tar.gz ##########
+          RELEASE_NAME=stegosaurust-${GITHUB_REF/refs\/tags\//}-${{ matrix.job.os-name }}-${{ matrix.job.architecture }}
+          tar czvf $RELEASE_NAME.tar.gz $BINARY_NAME
+
+          ########## create sha256 ##########
+          if [[ ${{ runner.os }} == 'Windows' ]]; then
+            certutil -hashfile $RELEASE_NAME.tar.gz sha256 | grep -E [A-Fa-f0-9]{64} > $RELEASE_NAME.sha256
+          else
+            shasum -a 256 $RELEASE_NAME.tar.gz > $RELEASE_NAME.sha256
+          fi
+      - name: Releasing assets
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            target/${{ matrix.job.target  }}/release/stegosaurust-*.tar.gz
+            target/${{ matrix.job.target }}/release/stegosaurust-*.sha256
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
