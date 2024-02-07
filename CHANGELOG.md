@@ -2,6 +2,8 @@
 
 ## [Unreleased] - ReleaseDate
 
+## [0.4.5] - 2024-02-07
+
 ## Fixed
 - check data is not empty before compressing/decompressing (#24)
 
@@ -80,7 +82,8 @@
   - release binaries to github
 
 <!-- next-url -->
-[Unreleased]: https://github.com/jj-style/stegosaurust/compare/v0.4.4...HEAD
+[Unreleased]: https://github.com/jj-style/stegosaurust/compare/v0.4.5...HEAD
+[0.4.5]: https://github.com/jj-style/stegosaurust/compare/v0.4.4...v0.4.5
 [0.4.4]: https://github.com/jj-style/stegosaurust/compare/v0.4.2...v0.4.4
 [0.4.2]: https://github.com/jj-style/stegosaurust/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/jj-style/stegosaurust/compare/v0.4.0...v0.4.1
