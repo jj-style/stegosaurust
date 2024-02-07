@@ -64,12 +64,9 @@ jobs:
           RUSTDOCFLAGS: -D warnings
         run: just doc-check
 
-  build:
-    name: compile binary
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-    runs-on: ${{ matrix.os }} 
+  check:
+    name: check compilation
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -77,6 +74,5 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - uses: taiki-e/install-action@just
-      - name: compile for ${{matrix.os}}
-        run: just build
-  
+      - name: Check compilation
+        run: just check

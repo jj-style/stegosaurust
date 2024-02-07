@@ -1,3 +1,7 @@
 target/
 tmp/
 examples/
+.github/
+Dockerfile
+*.md
+.gitignore

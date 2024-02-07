@@ -26,6 +26,10 @@ doc-check:
 build profile="release":
     cargo build --profile {{profile}}
 
+# check program would compile
+check:
+    cargo check
+
 # do a release
 dryrun := "true"
 _executeFlag := if dryrun == "false" {"--execute"} else { "" }

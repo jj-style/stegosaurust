@@ -2,6 +2,11 @@
 
 ## [Unreleased] - ReleaseDate
 
+## Build
+- change CI step to do a `cargo check`, save build for releases
+- update docker base image to debian bookworm
+- change docker CMD to ENTRYPOINT and update docker run example in README
+
 ## [0.4.6] - 2024-02-07
 
 ## Fixed
