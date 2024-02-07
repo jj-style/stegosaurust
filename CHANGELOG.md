@@ -2,6 +2,8 @@
 
 ## [Unreleased] - ReleaseDate
 
+## [0.4.6] - 2024-02-07
+
 ## Fixed
 - vendor openssl dependency
 
@@ -85,7 +87,8 @@
   - release binaries to github
 
 <!-- next-url -->
-[Unreleased]: https://github.com/jj-style/stegosaurust/compare/v0.4.5...HEAD
+[Unreleased]: https://github.com/jj-style/stegosaurust/compare/v0.4.6...HEAD
+[0.4.6]: https://github.com/jj-style/stegosaurust/compare/v0.4.5...v0.4.6
 [0.4.5]: https://github.com/jj-style/stegosaurust/compare/v0.4.4...v0.4.5
 [0.4.4]: https://github.com/jj-style/stegosaurust/compare/v0.4.2...v0.4.4
 [0.4.2]: https://github.com/jj-style/stegosaurust/compare/v0.4.1...v0.4.2
