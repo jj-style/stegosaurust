@@ -31,4 +31,4 @@ dryrun := "true"
 _executeFlag := if dryrun == "false" {"--execute"} else { "" }
 release level:
     @cargo install cargo-release
-    echo cargo release {{level}} {{_executeFlag}}
+    cargo release {{level}} {{_executeFlag}}
