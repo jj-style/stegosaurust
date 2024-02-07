@@ -2,6 +2,9 @@
 
 ## [Unreleased] - ReleaseDate
 
+## Fixed
+- vendor openssl dependency
+
 ## [0.4.5] - 2024-02-07
 
 ## Fixed
