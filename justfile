@@ -25,3 +25,10 @@ doc-check:
 # build program
 build profile="release":
     cargo build --profile {{profile}}
+
+# do a release
+dryrun := "true"
+_executeFlag := if dryrun == "false" {"--execute"} else { "" }
+release level:
+    @cargo install cargo-release
+    echo cargo release {{level}} {{_executeFlag}}
