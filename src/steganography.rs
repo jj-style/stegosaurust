@@ -28,7 +28,7 @@ pub fn encoder_from_opts(opts: EncodeOpts) -> Box<dyn Steganography> {
     // create encoder
     let encoder: Box<dyn Steganography> = match &steg_method {
         StegMethod::LeastSignificantBit => {
-            let lsb = Box::new(Lsb::default());
+            let lsb = Box::<Lsb>::default();
             Box::new(BitEncoder::new(
                 lsb,
                 Some(opts.distribution.unwrap_or_default()),
@@ -342,7 +342,7 @@ mod tests {
     #[test]
     fn test_lsb_steganography() {
         let img = RgbImage::new(32, 32);
-        let lsb = Box::new(Lsb::default());
+        let lsb = Box::<Lsb>::default();
         let mut enc: Box<dyn Steganography> = Box::from(BitEncoder::new(lsb, None));
         let secret_message = "🦕 hiding text!".as_bytes();
         let encoded: RgbImage = enc.encode(&img, secret_message).unwrap();
@@ -387,7 +387,7 @@ mod tests {
         let img = RgbImage::new(32, 32);
         let rsb = Box::new(Rsb::new(1, "seed"));
         let mut rsb_enc: Box<dyn Steganography> = Box::from(BitEncoder::new(rsb, None));
-        let lsb = Box::new(Lsb::default());
+        let lsb = Box::<Lsb>::default();
         let mut lsb_enc: Box<dyn Steganography> = Box::from(BitEncoder::new(lsb, None));
 
         let secret_message = "🦕 hiding text!".as_bytes();
@@ -400,7 +400,7 @@ mod tests {
         let img = RgbImage::new(32, 32);
         let rsb = Box::new(Rsb::new(3, "seed"));
         let mut rsb_enc: Box<dyn Steganography> = Box::from(BitEncoder::new(rsb, None));
-        let lsb = Box::new(Lsb::default());
+        let lsb = Box::<Lsb>::default();
         let mut lsb_enc: Box<dyn Steganography> = Box::from(BitEncoder::new(lsb, None));
 
         let secret_message = "🦕 hiding text!".as_bytes();
@@ -425,7 +425,7 @@ mod tests {
         }
 
         // encode one byte of all ones with linear distribution
-        let lsb = Box::new(Lsb::default());
+        let lsb = Box::<Lsb>::default();
         let mut lsb_enc: Box<dyn Steganography> = Box::from(BitEncoder {
             encoder: lsb,
             bit_dist: BitDistribution::Linear { length: 0 },
@@ -467,7 +467,7 @@ mod tests {
         }
 
         // encode one byte of all ones with linear distribution
-        let lsb = Box::new(Lsb::default());
+        let lsb = Box::<Lsb>::default();
         let mut lsb_enc: Box<dyn Steganography> = Box::from(BitEncoder {
             encoder: lsb,
             bit_dist: BitDistribution::Linear { length: 0 },
@@ -475,7 +475,7 @@ mod tests {
         });
         let new_img = lsb_enc.encode(&img, b"\xFF").unwrap();
 
-        let lsb = Box::new(Lsb::default());
+        let lsb = Box::<Lsb>::default();
         let mut lsb_dec: Box<dyn Steganography> = Box::from(BitEncoder {
             encoder: lsb,
             bit_dist: BitDistribution::Linear { length: 3 },
@@ -485,7 +485,7 @@ mod tests {
         let result = lsb_dec.decode(&new_img).unwrap();
         assert_eq!(result[0], 255);
 
-        let lsb = Box::new(Lsb::default());
+        let lsb = Box::<Lsb>::default();
         let mut lsb_dec: Box<dyn Steganography> = Box::from(BitEncoder {
             encoder: lsb,
             bit_dist: BitDistribution::Linear { length: 4 },

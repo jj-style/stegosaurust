@@ -93,8 +93,9 @@ pub struct EncodeOpts {
 }
 
 /// Supported steganography encoding algorithms
-#[derive(StructOpt, Debug, Clone, Copy)]
+#[derive(StructOpt, Debug, Clone, Copy, Default)]
 pub enum StegMethod {
+    #[default]
     /// Least significant bit encoding
     ///
     /// With a binary message, each bit of the message is encoded
@@ -118,12 +119,6 @@ impl FromStr for StegMethod {
     }
 }
 
-impl Default for StegMethod {
-    fn default() -> Self {
-        StegMethod::LeastSignificantBit
-    }
-}
-
 impl StegMethod {
     fn variants() -> [&'static str; 2] {
         ["lsb", "rsb"]
@@ -131,8 +126,9 @@ impl StegMethod {
 }
 
 /// Supported bit encoding bit distribution methods
-#[derive(StructOpt, Debug, Clone)]
+#[derive(StructOpt, Debug, Clone, Default)]
 pub enum BitDistribution {
+    #[default]
     /// Encode bits sequentially into the image starting from top-left
     Sequential,
     /// Evenly space out the bits in the image so not all packed into top-left
@@ -159,11 +155,5 @@ impl FromStr for BitDistribution {
             }
             other => Err(format!("unknown bit distribution {}", other)),
         }
-    }
-}
-
-impl Default for BitDistribution {
-    fn default() -> Self {
-        BitDistribution::Sequential
     }
 }

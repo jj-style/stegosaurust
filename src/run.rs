@@ -159,12 +159,10 @@ Try again using the compression flag --compress/-c, if not please use a larger i
 /// Disguise all files in directory by encoding them with assets embedded in the program
 fn disguise(opt: cli::Disguise) -> Result<()> {
     if opt.opts.decode {
-        for (_, dirent) in std::fs::read_dir(&opt.dir)
+        for dirent in std::fs::read_dir(&opt.dir)
             .context(format!("reading {:?}", opt.dir))?
-            .into_iter()
             .filter_map(|r| r.ok())
             .filter(is_not_hidden)
-            .enumerate()
         {
             if dirent.path().is_file() {
                 let path = dirent.path();
@@ -217,12 +215,10 @@ fn disguise(opt: cli::Disguise) -> Result<()> {
         }
     } else {
         let image_client = image_api::PicsumClient::new();
-        for (_, dirent) in std::fs::read_dir(&opt.dir)
+        for dirent in std::fs::read_dir(&opt.dir)
             .context(format!("reading {:?}", opt.dir))?
-            .into_iter()
             .filter_map(|r| r.ok())
             .filter(is_not_hidden)
-            .enumerate()
         {
             if dirent.path().is_file() {
                 let path = dirent.path();
