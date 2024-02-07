@@ -17,7 +17,7 @@ keywords = ["steganography","secrets","hide","image"]
 [dependencies]
 image = "0.23.14"
 structopt = "0.3"
-anyhow = "1.0.57"
+anyhow = "1.0.79"
 thiserror = "1.0.31"
 atty = "0.2"
 base64 = "0.13.0"
