@@ -15,7 +15,7 @@ keywords = ["steganography","secrets","hide","image"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-image = "0.23.14"
+image = "0.24.9"
 structopt = "0.3"
 anyhow = "1.0.80"
 thiserror = "1.0.57"
@@ -31,8 +31,8 @@ rand_seeder = "0.2.3"
 pretty-bytes = "0.2.2"
 tabled = "0.7.0"
 compression = "0.1.5"
-log = "0.4.6"
 env_logger = "0.11.2"
+log = "0.4.21"
 itertools-num = "0.1.3"
 reqwest = { version = "0.11", features = ["json", "blocking"] }
 openssl = { version = "0.10", features = ["vendored"] }
